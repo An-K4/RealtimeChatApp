@@ -4,6 +4,7 @@ require("dotenv").config();
 const databaseConfig = require("./src/configs/database.config");
 
 const UserRouter = require("./src/routes/index.route")
+const { createServer } = require("http");
 
 const app = express();
 
@@ -16,7 +17,10 @@ databaseConfig.connect();
 
 UserRouter(app)
 
+const httpServer = createServer(app);
+initSocket(httpServer);
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log("Server is listening on port " + PORT)
 })
