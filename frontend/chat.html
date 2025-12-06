@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat - Realtime Chat App</title>
+  <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Chat page -->
+    <div class="chat-container">
+      <div class="chat-header">
+        <div class="user-info">
+          Real Time Chat
+        </div>
+        <div class="header-actions">
+          <div class="profile-card" id="profile-card">
+            <div class="profile-avatar" id="profile-avatar">?</div>
+            <div class="profile-meta">
+              <p id="profile-name">Đang tải...</p>
+              <span id="profile-email"></span>
+            </div>
+          </div>
+          <button id="logout-btn" class="btn btn-secondary">Đăng xuất</button>
+        </div>
+      </div>
+      
+      <div class="chat-body">
+        <!-- Sidebar -->
+        <div class="sidebar">
+          <div class="sidebar-header">
+            <h3>Danh sách người dùng</h3>
+          </div>
+          <div id="users-list" class="users-list">
+            <!-- Users will be loaded here -->
+          </div>
+        </div>
+
+        <!-- Chat area -->
+        <div class="chat-area">
+          <div id="no-chat-selected" class="no-chat-selected">
+            <p>Chọn một người dùng để bắt đầu chat</p>
+          </div>
+
+          <div id="chat-messages-container" class="chat-messages-container" style="display: none;">
+            <div class="chat-messages-header">
+              <h3 id="chat-with-name">
+                <span class="chat-name-text"></span>
+                <span class="chat-online-indicator" id="chat-online-indicator"></span>
+              </h3>
+            </div>
+            <div id="messages-list" class="messages-list">
+              <!-- Messages will be loaded here -->
+            </div>
+            <div class="chat-input-container">
+              <input type="text" id="message-input" placeholder="Nhập tin nhắn..." />
+              <button id="send-btn" class="btn btn-primary">Gửi</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="profile-modal" class="profile-modal" aria-hidden="true">
+      <div class="profile-modal-overlay" id="profile-modal-overlay"></div>
+      <div class="profile-modal-content" role="dialog" aria-modal="true">
+      <button class="modal-close-btn" id="profile-modal-close" aria-label="Đóng">×</button>
+      <div class="profile-avatar-wrapper">
+        <div class="profile-modal-avatar" id="profile-modal-avatar">?</div>
+        <button type="button" id="avatar-upload-btn" class="avatar-upload-btn" aria-label="Đổi ảnh đại diện">
+          <span class="avatar-upload-icon">📷</span>
+        </button>
+        <input type="file" id="avatar-file-input" accept="image/*" hidden>
+      </div>
+      <p id="avatar-upload-status" class="avatar-upload-status" aria-live="polite"></p>
+        <h2 id="profile-modal-name">Tên người dùng</h2>
+        <p id="profile-modal-username" class="profile-modal-username">@username</p>
+        <p id="profile-modal-email" class="profile-modal-email">email@example.com</p>
+        <div class="profile-modal-divider"></div>
+        <ul class="profile-modal-info">
+          <li><span>Họ tên:</span><strong id="profile-modal-fullname">-</strong></li>
+          <li><span>Tên đăng nhập:</span><strong id="profile-modal-username-detail">-</strong></li>
+          <li><span>Email:</span><strong id="profile-modal-email-detail">-</strong></li>
+        </ul>
+        <form id="profile-edit-form" class="profile-edit-form">
+          <div class="form-group">
+            <label for="profile-edit-fullname">Họ tên</label>
+            <input type="text" id="profile-edit-fullname" required placeholder="Nhập họ tên">
+          </div>
+          <div class="form-group">
+            <label for="profile-edit-username">Tên đăng nhập</label>
+            <input type="text" id="profile-edit-username" required placeholder="Nhập tên đăng nhập">
+          </div>
+          <div class="form-group">
+            <label for="profile-edit-email">Email</label>
+            <input type="email" id="profile-edit-email" required placeholder="Nhập email">
+          </div>
+          <div class="profile-edit-actions">
+            <button type="submit" id="profile-save-btn" class="btn btn-primary">Lưu thay đổi</button>
+          </div>
+          <p id="profile-update-message" class="profile-update-message" aria-live="polite"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/chatPage.js"></script>
+</body>
+</html>
+

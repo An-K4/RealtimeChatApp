@@ -1,5 +1,6 @@
 const express = require("express");
 require("dotenv").config();
+const initSocket = require("./src/socket.io/index");
 
 const databaseConfig = require("./src/configs/database.config");
 
