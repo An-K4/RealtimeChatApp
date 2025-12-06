@@ -5,11 +5,26 @@ module.exports = (httpServer) => {
   const {
     Server
   } = require("socket.io");
+
+  // CORS configuration cho Socket.io - hỗ trợ cả web và JavaFX app
+  const allowedOrigins = process.env.ALLOWED_ORIGINS ?
+    process.env.ALLOWED_ORIGINS.split(',') :
+    ['http://localhost:5173'];
+
   const io = new Server(httpServer, {
     cors: {
-      origin: ["http://localhost:5173"]
-    },
-    method: ["GET", "POST"],
+      origin: function (origin, callback) {
+        // Cho phép requests không có origin (như JavaFX app)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+          callback(null, true);
+        } 
+        return callback(new Error("Not allowed by CORS"));
+      },
+      credentials: true,
+      methods: ["GET", "POST"]
+    }
   });
 
 
