@@ -17,7 +17,6 @@ import javafx.stage.Stage;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -25,9 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HomeController {
-    private AuthService authService;
-    private ChatService chatService;
-    private SocketService socketService;
+    private final AuthService authService;
+    private final ChatService chatService;
+    private final SocketService socketService;
     private User selectedUser;
     private List<User> users;
     private List<Message> messages;
@@ -86,6 +85,7 @@ public class HomeController {
                     messages.add(message);
                     Platform.runLater(() -> {
                         renderMessages();
+                        messageScrollPane.setVvalue(1.0);
                     });
                 }
             });
@@ -423,7 +423,7 @@ public class HomeController {
                 messageContent.getChildren().add(messageText);
             }
             
-            Label timeLabel = new Label(formatTime(message.getCreatedAt()));
+            Label timeLabel = new Label(formatTime(message.getSentAt()));
             timeLabel.getStyleClass().add("message-time");
             messageContent.getChildren().add(timeLabel);
             

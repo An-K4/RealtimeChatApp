@@ -56,10 +56,20 @@ public class SocketService {
                 }
             });
 
-            socket.on("newMessage", args -> {
+            socket.on("receive-message", args -> {
                 if (args.length > 0 && onNewMessage != null) {
-                    Message message = gson.fromJson(args[0].toString(), Message.class);
-                    Platform.runLater(() -> onNewMessage.accept(message));
+                    try {
+                        JSONObject jsonObject = (JSONObject) args[0];
+
+                        Message message = new Message();
+                        message.setSenderId(jsonObject.optString("senderId"));
+                        message.setContent(jsonObject.optString("content"));
+                        message.setSentAt(jsonObject.optString("sentAt"));
+
+                        Platform.runLater(() -> onNewMessage.accept(message));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             });
 

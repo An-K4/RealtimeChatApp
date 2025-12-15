@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class ChatService {
@@ -71,7 +70,7 @@ public class ChatService {
         localMsg.setSenderId(senderId);
         localMsg.setReceiverId(receiverId);
         localMsg.setContent(content);
-        localMsg.setCreatedAt(Instant.now().toString());
+        localMsg.setSentAt(Instant.now().toString());
 
         socketService.sendMessage(receiverId, content);
 
