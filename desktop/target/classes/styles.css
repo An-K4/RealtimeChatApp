@@ -252,7 +252,7 @@
 }
 
 .no-chat-view {
-    -fx-background-color: rgba(245, 245, 245, 0.5);
+    -fx-background-color: transparent;
 }
 
 .no-chat-icon-bg {

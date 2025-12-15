@@ -15,24 +15,36 @@ import java.util.List;
 public class AuthService {
     private final ApiService apiService;
     private String sessionCookie;
-    public static User currentUser;
+    private User currentUser;
 
     public AuthService() {
         this.apiService = new ApiService();
         this.sessionCookie = loadSessionCookie();
     }
 
-    public boolean checkAuth() {
+    public User checkAuth() {
+        if(ApiService.authToken == null || ApiService.authToken.isEmpty()) return  null;
+
         try {
-            User user = apiService.get("/auth/check", User.class, null);
-            if (user != null && user.get_id() != null) {
+            JsonObject response = apiService.get("/auth/me", JsonObject.class, null);
+
+            if(response != null && response.has("user")){
+                Gson gson = new Gson();
+                User user = gson.fromJson(response.get("user"), User.class);
+
+                user.setToken(ApiService.authToken);
+
                 this.currentUser = user;
-                return true;
+
+                return user;
             }
-        } catch (IOException e) {
-            // Not authenticated
+        } catch (Exception e){
+            System.out.println("Token không hợp lệ hoặc đã hết hạn");
+            ApiService.authToken = null;
+            this.currentUser = null;
         }
-        return false;
+
+        return null;
     }
 
     public User login(String username, String password) throws IOException {
@@ -89,6 +101,10 @@ public class AuthService {
         this.currentUser = null;
         this.sessionCookie = null;
         clearSessionCookie();
+    }
+
+    public void setCurrentUser(User currentUser) {
+        this.currentUser = currentUser;
     }
 
     public User getCurrentUser() {

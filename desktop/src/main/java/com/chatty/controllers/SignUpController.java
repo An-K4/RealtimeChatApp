@@ -1,5 +1,6 @@
 package com.chatty.controllers;
 
+import com.chatty.models.User;
 import com.chatty.services.AuthService;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -177,9 +178,9 @@ public class SignUpController {
             
             new Thread(() -> {
                 try {
-                    authService.signup(fullName, email, password);
+                    User signupUser = authService.signup(fullName, email, password);
                     Platform.runLater(() -> {
-                        new HomeController().show(primaryStage);
+                        new HomeController().show(primaryStage, signupUser);
                     });
                 } catch (Exception ex) {
                     Platform.runLater(() -> {

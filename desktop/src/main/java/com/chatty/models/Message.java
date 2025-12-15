@@ -4,11 +4,12 @@ public class Message {
     private String _id;
     private String senderId;
     private String receiverId;
-    private String text;
+    private String content;
     private String image;
     private String createdAt;
 
-    public Message() {}
+    public Message() {
+    }
 
     public String get_id() {
         return _id;
@@ -34,12 +35,12 @@ public class Message {
         this.receiverId = receiverId;
     }
 
-    public String getText() {
-        return text;
+    public String getContent() {
+        return content;
     }
 
-    public void setText(String text) {
-        this.text = text;
+    public void setContent(String content) {
+        this.content = content;
     }
 
     public String getImage() {

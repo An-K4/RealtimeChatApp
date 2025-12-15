@@ -1,5 +1,6 @@
 package com.chatty.controllers;
 
+import com.chatty.models.User;
 import com.chatty.services.AuthService;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -156,9 +157,9 @@ public class LoginController {
             
             new Thread(() -> {
                 try {
-                    authService.login(username, password);
+                    User loginUser = authService.login(username, password);
                     Platform.runLater(() -> {
-                        new HomeController().show(primaryStage);
+                        new HomeController().show(primaryStage, loginUser);
                     });
                 } catch (Exception ex) {
                     Platform.runLater(() -> {

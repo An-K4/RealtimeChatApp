@@ -41,10 +41,10 @@ public class HomeController {
         this.messages = new ArrayList<>();
     }
 
-    public void show(Stage primaryStage) {
+    public void show(Stage primaryStage, User user) {
         primaryStage.setTitle("Chatty");
         primaryStage.setWidth(1200);
-        primaryStage.setHeight(800);
+        primaryStage.setHeight(700);
         primaryStage.setResizable(true);
 
         // Main container
@@ -66,6 +66,7 @@ public class HomeController {
         // Chat area
         VBox chatArea = createChatArea();
         centerContent.getChildren().add(chatArea);
+        HBox.setHgrow(chatArea, Priority.ALWAYS);
 
         mainContainer.setCenter(centerContent);
 
@@ -73,6 +74,7 @@ public class HomeController {
         loadUsers();
 
         // Connect socket
+        authService.setCurrentUser(user);
         User currentUser = authService.getCurrentUser();
         if (currentUser != null) {
             socketService.connect(currentUser.get_id());
@@ -89,6 +91,7 @@ public class HomeController {
         Scene scene = new Scene(mainContainer);
         scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
         primaryStage.setScene(scene);
+        primaryStage.centerOnScreen();
         primaryStage.show();
     }
 
@@ -197,7 +200,6 @@ public class HomeController {
     private VBox createChatArea() {
         VBox chatArea = new VBox();
         chatArea.getStyleClass().add("chat-area");
-        VBox.setVgrow(chatArea, Priority.ALWAYS);
 
         // Chat header (will be shown when user is selected)
         HBox chatHeader = new HBox(15);
@@ -258,6 +260,7 @@ public class HomeController {
         messageInputContainer.setManaged(false);
 
         chatArea.getChildren().addAll(chatHeader, noChatView, messageScrollPane, messageInputContainer);
+        VBox.setVgrow(messageScrollPane, Priority.ALWAYS);
 
         return chatArea;
     }
@@ -320,12 +323,12 @@ public class HomeController {
                 selectedUser = null;
                 chatHeader.setVisible(false);
                 chatHeader.setManaged(false);
-                VBox noChatView = (VBox) ((VBox) messageScrollPane.getParent()).lookup("#noChatView");
+                VBox noChatView = (VBox) (messageScrollPane.getParent()).lookup("#noChatView");
                 if (noChatView != null) {
                     noChatView.setVisible(true);
                     noChatView.setManaged(true);
                 }
-                HBox messageInputContainer = (HBox) ((VBox) messageScrollPane.getParent()).lookup("#messageInputContainer");
+                HBox messageInputContainer = (HBox) (messageScrollPane.getParent()).lookup("#messageInputContainer");
                 if (messageInputContainer != null) {
                     messageInputContainer.setVisible(false);
                     messageInputContainer.setManaged(false);
@@ -337,7 +340,7 @@ public class HomeController {
             chatHeader.getChildren().addAll(avatar, userInfo, closeBtn);
             
             // Hide no chat view
-            VBox noChatView = (VBox) ((VBox) messageScrollPane.getParent()).lookup("#noChatView");
+            VBox noChatView = (VBox) (messageScrollPane.getParent()).lookup("#noChatView");
             if (noChatView != null) {
                 noChatView.setVisible(false);
                 noChatView.setManaged(false);
@@ -361,6 +364,7 @@ public class HomeController {
         new Thread(() -> {
             try {
                 messages = chatService.getMessages(selectedUser.get_id());
+
                 Platform.runLater(() -> {
                     renderMessages();
                 });
@@ -379,7 +383,7 @@ public class HomeController {
         
         for (Message message : messages) {
             boolean isMyMessage = message.getSenderId().equals(currentUser.get_id());
-            
+
             HBox messageBox = new HBox(10);
             messageBox.getStyleClass().add(isMyMessage ? "message-box-right" : "message-box-left");
             
@@ -409,8 +413,8 @@ public class HomeController {
                 messageContent.getChildren().add(imageView);
             }
             
-            if (message.getText() != null && !message.getText().isEmpty()) {
-                Label messageText = new Label(message.getText());
+            if (message.getContent() != null && !message.getContent().isEmpty()) {
+                Label messageText = new Label(message.getContent());
                 messageText.getStyleClass().add("message-text");
                 messageText.setWrapText(true);
                 messageContent.getChildren().add(messageText);
