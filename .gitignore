@@ -5,3 +5,4 @@ frontend/.env
 frontend/.env.local
 frontend/dist/
 desktop/.idea/
+.idea/
