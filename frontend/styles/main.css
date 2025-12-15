@@ -611,16 +611,29 @@ body.auth-page {
 .typing-indicator {
   display: flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 8px;
-  font-size: 13px;
+  padding: 8px 30px;
+  font-size: 12px;
   color: #667eea;
   font-style: italic;
+  background: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
+}
+
+.typing-text {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.typing-text strong {
+  font-weight: 600;
+  margin-right: 4px;
 }
 
 .typing-dots {
-  display: flex;
+  display: inline-flex;
   gap: 2px;
+  margin-left: 2px;
 }
 
 .typing-dots span {
@@ -681,11 +694,9 @@ body.auth-page {
 
 .message {
   max-width: 65%;
-  padding: 14px 18px;
-  border-radius: 18px;
-  word-wrap: break-word;
+  display: flex;
+  flex-direction: column;
   animation: fadeIn 0.3s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 @keyframes fadeIn {
@@ -701,14 +712,32 @@ body.auth-page {
 
 .message.sent {
   align-self: flex-end;
+  align-items: flex-end;
+}
+
+.message.received {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.message-content {
+  padding: 14px 18px;
+  border-radius: 18px;
+  word-wrap: break-word;
+  font-size: 15px;
+  line-height: 1.6;
+  word-break: break-word;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.message.sent .message-content {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border-bottom-right-radius: 6px;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
-.message.received {
-  align-self: flex-start;
+.message.received .message-content {
   background: white;
   color: #333;
   border: none;
@@ -716,10 +745,30 @@ body.auth-page {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.message-content {
-  font-size: 15px;
-  line-height: 1.6;
-  word-break: break-word;
+.message-status {
+  font-size: 10px;
+  margin-top: 4px;
+  opacity: 0.6;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.message.sent .message-status {
+  color: #667eea;
+}
+
+.message.received .message-status {
+  color: #666;
+}
+
+.message-status-label {
+  font-weight: 500;
+}
+
+.message-status-time {
+  font-weight: 400;
 }
 
 .message-time {
