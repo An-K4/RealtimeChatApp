@@ -2,12 +2,15 @@ package com.chatty.services;
 
 import com.chatty.models.Message;
 import com.google.gson.Gson;
+import io.socket.client.Ack;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import javafx.application.Platform;
+import org.json.JSONObject;
 
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -26,9 +29,15 @@ public class SocketService {
     public void connect(String userId) {
         try {
             IO.Options opts = new IO.Options();
-            opts.query = "userId=" + userId;
+
+            if(ApiService.authToken != null){
+                opts.auth = Collections.singletonMap("token", ApiService.authToken);
+            } else {
+                System.err.println("Token chưa có");
+            }
+
             socket = IO.socket("http://localhost:3000", opts);
-            
+
             socket.on(Socket.EVENT_CONNECT, args -> {
                 System.out.println("Socket connected");
             });
@@ -63,6 +72,32 @@ public class SocketService {
     public void disconnect() {
         if (socket != null && socket.connected()) {
             socket.disconnect();
+        }
+    }
+
+    public void sendMessage(String receiverId, String content){
+        if(socket == null || !socket.connected()){
+            System.out.println("Chưa kết nối socket");
+            return;
+        }
+
+        try {
+            JSONObject payload = new JSONObject();
+            payload.put("receiverId", receiverId);
+            payload.put("content", content);
+
+            socket.emit("send-message", payload, (Ack) args ->{
+                JSONObject response = (JSONObject) args[0];
+                boolean success = response.optBoolean("success");
+
+                if(success){
+                    System.out.println("Đã gửi tin nhắn");
+                } else {
+                    System.out.println("Gửi tin thất bại");
+                }
+            });
+        } catch ( Exception e){
+            e.printStackTrace();
         }
     }
 

@@ -16,7 +16,10 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,8 +39,8 @@ public class HomeController {
 
     public HomeController() {
         this.authService = new AuthService();
-        this.chatService = new ChatService();
         this.socketService = new SocketService();
+        this.chatService = new ChatService(socketService);
         this.messages = new ArrayList<>();
     }
 
@@ -455,13 +458,15 @@ public class HomeController {
         if (selectedUser == null || messageInput.getText().trim().isEmpty()) {
             return;
         }
-        
-        String text = messageInput.getText().trim();
+
+        String senderId = authService.getCurrentUser().get_id();
+        String receiverId = selectedUser.get_id();
+        String content = messageInput.getText().trim();
         messageInput.clear();
         
         new Thread(() -> {
             try {
-                Message sentMessage = chatService.sendMessage(selectedUser.get_id(), text, null);
+                Message sentMessage = chatService.sendMessage(senderId, receiverId, content);
                 messages.add(sentMessage);
                 Platform.runLater(() -> {
                     renderMessages();
@@ -475,12 +480,21 @@ public class HomeController {
         }).start();
     }
 
-    private String formatTime(String dateString) {
+    private String formatTime(String timeStamp) {
+        if(timeStamp == null || timeStamp.isEmpty()) return "";
         try {
-            // Simple time formatting - can be improved
-            return dateString.substring(11, 16); // Extract HH:mm from ISO string
+            Instant instant = Instant.parse(timeStamp);
+            ZonedDateTime zonedDateTime = Instant.now().atZone(ZoneId.systemDefault());
+            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+
+            return zonedDateTime.format(dateTimeFormatter);
         } catch (Exception e) {
-            return "";
+            try {
+                // Fallback đơn giản: Nếu chuỗi đã có sẵn giờ phút dạng HH:mm thì trả về luôn
+                return timeStamp.substring(11, 16);
+            } catch (Exception ex) {
+                return "";
+            }
         }
     }
 

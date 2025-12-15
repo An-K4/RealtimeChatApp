@@ -9,16 +9,18 @@ import com.google.gson.reflect.TypeToken;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class ChatService {
     private final ApiService apiService;
-    private final Gson gson;
+    private final SocketService socketService;
 
-    public ChatService() {
+    public ChatService(SocketService socketService) {
         this.apiService = new ApiService();
-        this.gson = new Gson();
+        this.socketService = socketService;
     }
 
     public List<User> getUsers() throws IOException {
@@ -59,16 +61,21 @@ public class ChatService {
         }
     }
 
-    public Message sendMessage(String receiverId, String text, String image) throws IOException {
-        com.google.gson.JsonObject messageData = new com.google.gson.JsonObject();
-        if (text != null && !text.isEmpty()) {
-            messageData.addProperty("text", text);
+    public Message sendMessage(String senderId, String receiverId, String content){
+        if(content == null || content.trim().isEmpty()){
+            return null;
         }
-        if (image != null && !image.isEmpty()) {
-            messageData.addProperty("image", image);
-        }
-        
-        return apiService.post("/messages/send/" + receiverId, messageData, Message.class);
+
+        Message localMsg = new Message();
+        localMsg.set_id(String.valueOf(System.currentTimeMillis()));
+        localMsg.setSenderId(senderId);
+        localMsg.setReceiverId(receiverId);
+        localMsg.setContent(content);
+        localMsg.setCreatedAt(Instant.now().toString());
+
+        socketService.sendMessage(receiverId, content);
+
+        return localMsg;
     }
 }
 
