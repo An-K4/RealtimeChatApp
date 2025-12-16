@@ -13,7 +13,7 @@ module.exports =  (io, socket) => {
       updateStatus({success: true});
       io.to(data.receiverId.toString()).emit("receive-message", {
         content: data.content,
-        sentAt: savedMessage.createdAt,
+        createdAt: savedMessage.createdAt,
 
         // thêm trường mới
         _id: savedMessage._id,

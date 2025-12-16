@@ -70,7 +70,7 @@ public class ChatService {
         localMsg.setSenderId(senderId);
         localMsg.setReceiverId(receiverId);
         localMsg.setContent(content);
-        localMsg.setSentAt(Instant.now().toString());
+        localMsg.setCreatedAt(Instant.now().toString());
 
         socketService.sendMessage(receiverId, content);
 

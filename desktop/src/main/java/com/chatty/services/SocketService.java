@@ -64,7 +64,7 @@ public class SocketService {
                         Message message = new Message();
                         message.setSenderId(jsonObject.optString("senderId"));
                         message.setContent(jsonObject.optString("content"));
-                        message.setSentAt(jsonObject.optString("sentAt"));
+                        message.setCreatedAt(jsonObject.optString("createdAt"));
 
                         Platform.runLater(() -> onNewMessage.accept(message));
                     } catch (Exception e) {

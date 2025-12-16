@@ -119,7 +119,7 @@ public class HomeController {
         // Right side buttons
         HBox rightButtons = new HBox(10);
         rightButtons.setAlignment(Pos.CENTER_RIGHT);
-        
+
         Button settingsBtn = new Button("Settings");
         settingsBtn.getStyleClass().add("nav-button");
         FontIcon settingsIcon = new FontIcon("mdi2c-cog");
@@ -137,7 +137,7 @@ public class HomeController {
         FontIcon logoutIcon = new FontIcon("mdi2l-logout");
         logoutIcon.setIconSize(18);
         logoutBtn.setGraphic(logoutIcon);
-        
+
         logoutBtn.setOnAction(e -> {
             authService.logout();
             socketService.disconnect();
@@ -145,7 +145,7 @@ public class HomeController {
         });
 
         rightButtons.getChildren().addAll(settingsBtn, profileBtn, logoutBtn);
-        
+
         HBox.setHgrow(rightButtons, Priority.ALWAYS);
         navbar.getChildren().addAll(logoContainer, rightButtons);
 
@@ -173,7 +173,7 @@ public class HomeController {
         // Filter checkbox
         CheckBox onlineOnlyCheck = new CheckBox("Show online only");
         onlineOnlyCheck.getStyleClass().add("filter-checkbox");
-        
+
         Label onlineCount = new Label("(0 online)");
         onlineCount.getStyleClass().add("online-count");
 
@@ -186,7 +186,7 @@ public class HomeController {
         userListView = new ListView<>();
         userListView.setCellFactory(list -> new UserListCell());
         userListView.getStyleClass().add("user-list");
-        
+
         userListView.setOnMouseClicked(e -> {
             User selected = userListView.getSelectionModel().getSelectedItem();
             if (selected != null) {
@@ -217,7 +217,7 @@ public class HomeController {
         messageScrollPane.setFitToWidth(true);
         messageScrollPane.getStyleClass().add("message-scroll-pane");
         messageScrollPane.setVvalue(1.0);
-        
+
         messageContainer = new VBox(15);
         messageContainer.setPadding(new Insets(20));
         messageScrollPane.setContent(messageContainer);
@@ -242,18 +242,18 @@ public class HomeController {
         HBox messageInputContainer = new HBox(10);
         messageInputContainer.setPadding(new Insets(15, 20, 15, 20));
         messageInputContainer.getStyleClass().add("message-input-container");
-        
+
         messageInput = new TextField();
         messageInput.setPromptText("Type a message...");
         messageInput.getStyleClass().add("message-input");
         HBox.setHgrow(messageInput, Priority.ALWAYS);
-        
+
         Button sendButton = new Button();
         FontIcon sendIcon = new FontIcon("mdi2s-send");
         sendIcon.setIconSize(20);
         sendButton.setGraphic(sendIcon);
         sendButton.getStyleClass().add("send-button");
-        
+
         messageInput.setOnAction(e -> sendMessage());
         sendButton.setOnAction(e -> sendMessage());
 
@@ -287,36 +287,36 @@ public class HomeController {
 
     private void selectUser(User user) {
         this.selectedUser = user;
-        
+
         // Update UI
         Platform.runLater(() -> {
             // Show chat header
             HBox chatHeader = (HBox) ((VBox) messageScrollPane.getParent()).getChildren().get(0);
             chatHeader.setVisible(true);
             chatHeader.setManaged(true);
-            
+
             // Update header content
             chatHeader.getChildren().clear();
             ImageView avatar = new ImageView();
             avatar.setFitWidth(40);
             avatar.setFitHeight(40);
             avatar.getStyleClass().add("chat-header-avatar");
-                try {
-                    if (user.getProfilePic() != null && !user.getProfilePic().isEmpty()) {
-                        avatar.setImage(new Image(user.getProfilePic()));
-                    }
-                } catch (Exception e) {
-                    // Use default - no image
-                    avatar.setImage(null);
+            try {
+                if (user.getProfilePic() != null && !user.getProfilePic().isEmpty()) {
+                    avatar.setImage(new Image(user.getProfilePic()));
                 }
-            
+            } catch (Exception e) {
+                // Use default - no image
+                avatar.setImage(null);
+            }
+
             VBox userInfo = new VBox(5);
             Label userName = new Label(user.getFullName());
             userName.getStyleClass().add("chat-header-name");
             Label userStatus = new Label("Online");
             userStatus.getStyleClass().add("chat-header-status");
             userInfo.getChildren().addAll(userName, userStatus);
-            
+
             Button closeBtn = new Button();
             FontIcon closeIcon = new FontIcon("mdi2c-close");
             closeIcon.setIconSize(20);
@@ -338,24 +338,24 @@ public class HomeController {
                 }
                 messageContainer.getChildren().clear();
             });
-            
+
             HBox.setHgrow(userInfo, Priority.ALWAYS);
             chatHeader.getChildren().addAll(avatar, userInfo, closeBtn);
-            
+
             // Hide no chat view
             VBox noChatView = (VBox) (messageScrollPane.getParent()).lookup("#noChatView");
             if (noChatView != null) {
                 noChatView.setVisible(false);
                 noChatView.setManaged(false);
             }
-            
+
             // Show message input
             HBox messageInputContainer = (HBox) ((VBox) messageScrollPane.getParent()).lookup("#messageInputContainer");
             if (messageInputContainer != null) {
                 messageInputContainer.setVisible(true);
                 messageInputContainer.setManaged(true);
             }
-            
+
             // Load messages
             loadMessages();
         });
@@ -363,7 +363,7 @@ public class HomeController {
 
     private void loadMessages() {
         if (selectedUser == null) return;
-        
+
         new Thread(() -> {
             try {
                 messages = chatService.getMessages(selectedUser.get_id());
@@ -383,31 +383,31 @@ public class HomeController {
     private void renderMessages() {
         messageContainer.getChildren().clear();
         User currentUser = authService.getCurrentUser();
-        
+
         for (Message message : messages) {
             boolean isMyMessage = message.getSenderId().equals(currentUser.get_id());
 
             HBox messageBox = new HBox(10);
             messageBox.getStyleClass().add(isMyMessage ? "message-box-right" : "message-box-left");
-            
+
             if (!isMyMessage) {
                 ImageView avatar = new ImageView();
                 avatar.setFitWidth(40);
                 avatar.setFitHeight(40);
                 avatar.getStyleClass().add("message-avatar");
-                try {
-                    if (selectedUser.getProfilePic() != null && !selectedUser.getProfilePic().isEmpty()) {
-                        avatar.setImage(new Image(selectedUser.getProfilePic()));
-                    }
-                } catch (Exception e) {
+
+                if (currentUser.getProfilePic() != null && !currentUser.getProfilePic().isEmpty()) {
+                    avatar.setImage(new Image(currentUser.getProfilePic()));
+                } else {
                     // Use default - no image
-                    avatar.setImage(null);
+                    avatar.setImage(new Image(getClass().getResource("/account.png").toExternalForm()));
                 }
+
                 messageBox.getChildren().add(avatar);
             }
-            
+
             VBox messageContent = new VBox(5);
-            
+
             if (message.getImage() != null && !message.getImage().isEmpty()) {
                 ImageView imageView = new ImageView(new Image(message.getImage()));
                 imageView.setFitWidth(200);
@@ -415,39 +415,40 @@ public class HomeController {
                 imageView.getStyleClass().add("message-image");
                 messageContent.getChildren().add(imageView);
             }
-            
+
             if (message.getContent() != null && !message.getContent().isEmpty()) {
                 Label messageText = new Label(message.getContent());
                 messageText.getStyleClass().add("message-text");
                 messageText.setWrapText(true);
                 messageContent.getChildren().add(messageText);
             }
-            
-            Label timeLabel = new Label(formatTime(message.getSentAt()));
+
+            Label timeLabel = new Label(formatTime(message.getCreatedAt()));
+            System.out.println(message.getCreatedAt());
             timeLabel.getStyleClass().add("message-time");
             messageContent.getChildren().add(timeLabel);
-            
+
             messageBox.getChildren().add(messageContent);
-            
+
             if (isMyMessage) {
                 ImageView avatar = new ImageView();
                 avatar.setFitWidth(40);
                 avatar.setFitHeight(40);
                 avatar.getStyleClass().add("message-avatar");
-                try {
-                    if (currentUser.getProfilePic() != null && !currentUser.getProfilePic().isEmpty()) {
-                        avatar.setImage(new Image(currentUser.getProfilePic()));
-                    }
-                } catch (Exception e) {
+
+                if (currentUser.getProfilePic() != null && !currentUser.getProfilePic().isEmpty()) {
+                    avatar.setImage(new Image(currentUser.getProfilePic()));
+                } else {
                     // Use default - no image
-                    avatar.setImage(null);
+                    avatar.setImage(new Image(getClass().getResource("/account.png").toExternalForm()));
                 }
+
                 messageBox.getChildren().add(avatar);
             }
-            
+
             messageContainer.getChildren().add(messageBox);
         }
-        
+
         // Scroll to bottom
         Platform.runLater(() -> {
             messageScrollPane.setVvalue(1.0);
@@ -463,7 +464,7 @@ public class HomeController {
         String receiverId = selectedUser.get_id();
         String content = messageInput.getText().trim();
         messageInput.clear();
-        
+
         new Thread(() -> {
             try {
                 Message sentMessage = chatService.sendMessage(senderId, receiverId, content);
@@ -481,10 +482,10 @@ public class HomeController {
     }
 
     private String formatTime(String timeStamp) {
-        if(timeStamp == null || timeStamp.isEmpty()) return "";
+        if (timeStamp == null || timeStamp.isEmpty()) return "";
         try {
             Instant instant = Instant.parse(timeStamp);
-            ZonedDateTime zonedDateTime = Instant.now().atZone(ZoneId.systemDefault());
+            ZonedDateTime zonedDateTime = instant.atZone(ZoneId.systemDefault());
             DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
 
             return zonedDateTime.format(dateTimeFormatter);
@@ -511,14 +512,14 @@ public class HomeController {
         @Override
         protected void updateItem(User user, boolean empty) {
             super.updateItem(user, empty);
-            
+
             if (empty || user == null) {
                 setGraphic(null);
             } else {
                 HBox cell = new HBox(15);
                 cell.setPadding(new Insets(10));
                 cell.setAlignment(Pos.CENTER_LEFT);
-                
+
                 ImageView avatar = new ImageView();
                 avatar.setFitWidth(48);
                 avatar.setFitHeight(48);
@@ -531,14 +532,14 @@ public class HomeController {
                     // Use default - no image
                     avatar.setImage(null);
                 }
-                
+
                 VBox userInfo = new VBox(5);
                 Label userName = new Label(user.getFullName());
                 userName.getStyleClass().add("user-name");
                 Label userStatus = new Label("Offline");
                 userStatus.getStyleClass().add("user-status");
                 userInfo.getChildren().addAll(userName, userStatus);
-                
+
                 cell.getChildren().addAll(avatar, userInfo);
                 setGraphic(cell);
             }

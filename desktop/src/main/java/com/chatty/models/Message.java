@@ -6,7 +6,7 @@ public class Message {
     private String receiverId;
     private String content;
     private String image;
-    private String sentAt;
+    private String createdAt;
 
     public Message() {
     }
@@ -51,12 +51,12 @@ public class Message {
         this.image = image;
     }
 
-    public String getSentAt() {
-        return sentAt;
+    public String getCreatedAt() {
+        return createdAt;
     }
 
-    public void setSentAt(String sentAt) {
-        this.sentAt = sentAt;
+    public void setCreatedAt(String createdAt) {
+        this.createdAt = createdAt;
     }
 }
 

@@ -65,7 +65,7 @@ public class LoginController {
         userIcon.setIconSize(20);
         userIcon.getStyleClass().add("input-icon");
         TextField usernameField = new TextField();
-        usernameField.setPromptText("username");
+        usernameField.setPromptText("Username");
         usernameField.getStyleClass().add("text-input");
         usernameField.setPrefWidth(310);
         usernameContainer.getChildren().addAll(userIcon, usernameField);
