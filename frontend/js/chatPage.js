@@ -37,9 +37,13 @@ const profileUpdateMessage = document.getElementById('profile-update-message');
 const avatarUploadBtn = document.getElementById('avatar-upload-btn');
 const avatarFileInput = document.getElementById('avatar-file-input');
 const avatarUploadStatus = document.getElementById('avatar-upload-status');
+const typingIndicator = document.getElementById('typing-indicator');
 let currentProfile = null;
 // Map to store online status of users: userId -> boolean
 const onlineUsers = new Map();
+// Typing timeout reference
+let typingTimeout = null;
+const TYPING_TIMEOUT = 2000; // 2 giây
 
 if (profileEditForm) {
   setProfileFormDisabled(true);
@@ -169,6 +173,13 @@ async function selectUser(userId, userName) {
   
   if (result.success) {
     renderMessages(result.messages);
+    
+    // Emit seen-message event để thông báo đã xem tin nhắn
+    if (result.messages.length > 0) {
+      socket.emit('seen-message', {
+        senderId: userId // người gửi tin (người mình đang chat)
+      });
+    }
   } else {
     messagesList.innerHTML = `<div class="error-message">${result.message}</div>`;
   }
@@ -326,14 +337,14 @@ function buildStatusHtml(labelText, action, timestamp) {
   `;
 }
 
-// Clear "Đã gửi" status from old messages, keep "Đang gửi..." và "Gửi thất bại"
+// Clear "Đã gửi" và "Đã xem" status from old messages, keep "Đang gửi..." và "Gửi thất bại"
 function clearDeliveredStatuses() {
   const statusElements = messagesList?.querySelectorAll('.message-status');
   if (!statusElements) return;
 
   statusElements.forEach((statusEl) => {
     const labelText = statusEl.querySelector('.message-status-label')?.textContent?.trim();
-    if (labelText === 'Đã gửi') {
+    if (labelText === 'Đã gửi' || labelText === 'Đã xem') {
       statusEl.innerHTML = '';
       statusEl.removeAttribute('title');
       delete statusEl.dataset.baseTimestamp;
@@ -381,6 +392,28 @@ messageInput.addEventListener('keypress', (e) => {
   }
 });
 
+// Typing indicator handler
+messageInput.addEventListener('input', () => {
+  if (!chatService.selectedUserId) return;
+  
+  // Emit typing-start event
+  socket.emit('typing-start', {
+    receiverId: chatService.selectedUserId
+  });
+  
+  // Clear previous timeout
+  if (typingTimeout) {
+    clearTimeout(typingTimeout);
+  }
+  
+  // Set timeout to emit typing-stop after 2 seconds of inactivity
+  typingTimeout = setTimeout(() => {
+    socket.emit('typing-stop', {
+      receiverId: chatService.selectedUserId
+    });
+  }, TYPING_TIMEOUT);
+});
+
 async function sendMessage() {
   const content = messageInput.value.trim();
   if (!content || !chatService.selectedUserId) return;
@@ -392,6 +425,14 @@ async function sendMessage() {
 
   // Always scroll to the latest message after sending
   scrollToLatestMessage();
+
+  // Emit typing-stop khi gửi tin nhắn
+  if (typingTimeout) {
+    clearTimeout(typingTimeout);
+  }
+  socket.emit('typing-stop', {
+    receiverId: chatService.selectedUserId
+  });
 
   // Implement send message via socket.io or API
   socket.emit("send-message", {
@@ -441,7 +482,7 @@ function displaceSendingMessage(content) {
 }
 
 
-function updateMessageStatus(messElement, status) {
+function updateMessageStatus(messElement, status, seenAt = null) {
   const statusDiv = messElement.querySelector(".message-status");
 
   if (!statusDiv) return;
@@ -455,6 +496,13 @@ function updateMessageStatus(messElement, status) {
   if (status === "success") {
     removeRetryButton(statusDiv);
     applyStatusMetadata(statusDiv, "Đã gửi", "Gửi", statusDiv.dataset.baseTimestamp);
+    messElement.classList.remove("sending");
+    return;
+  }
+
+  if (status === "seen") {
+    removeRetryButton(statusDiv);
+    applyStatusMetadata(statusDiv, "Đã xem", "Gửi", seenAt || new Date());
     messElement.classList.remove("sending");
     return;
   }
@@ -680,6 +728,14 @@ socket.on("receive-message", (message) => {
   // Tự động cuộn xuống tin nhắn mới nhất khi nhận tin
   scrollToLatestMessage();
 
+  // Emit seen-message nếu đang xem chat với người này
+  const senderId = message.senderId || message.sender;
+  if (senderId && chatService.selectedUserId && senderId.toString() === chatService.selectedUserId.toString()) {
+    // Gửi thông báo đã xem tin nhắn về cho người gửi (senderId)
+    socket.emit('seen-message', {
+      senderId: senderId.toString()
+    });
+  }
 })
 
 socket.on("connect_error", (err) => {
@@ -768,6 +824,48 @@ socket.on("noti-onlineList-toMe", array => {
     });
   }
 })
+
+// Lắng nghe typing indicator từ người khác
+socket.on("user-typing", (data) => {
+  const { userId, isTyping } = data;
+  
+  // Chỉ hiển thị nếu đang chat với người đó
+  if (chatService.selectedUserId && userId === chatService.selectedUserId.toString()) {
+    if (typingIndicator) {
+      if (isTyping) {
+        // Lấy tên người dùng từ chat header
+        const userName = chatNameText ? chatNameText.textContent : chatWithName.textContent;
+        const typingText = typingIndicator.querySelector('.typing-text');
+        if (typingText) {
+          typingText.innerHTML = `<strong>${userName}</strong> đang nhập tin nhắn<span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>`;
+        }
+        typingIndicator.style.display = 'flex';
+      } else {
+        typingIndicator.style.display = 'none';
+      }
+    }
+  }
+});
+
+// Lắng nghe khi tin nhắn được xem
+socket.on("seen-message", (data) => {
+  const { viewerId, seenAt } = data;
+  
+  // Cập nhật tất cả tin nhắn đã gửi cho người này thành "Đã xem"
+  if (chatService.selectedUserId && viewerId === chatService.selectedUserId.toString()) {
+    const sentMessages = messagesList.querySelectorAll('.message.sent');
+    sentMessages.forEach((message) => {
+      const statusDiv = message.querySelector('.message-status');
+      if (statusDiv) {
+        const labelText = statusDiv.querySelector('.message-status-label')?.textContent?.trim();
+        // Chỉ cập nhật những tin có trạng thái "Đã gửi"
+        if (labelText === 'Đã gửi') {
+          updateMessageStatus(message, 'seen', seenAt);
+        }
+      }
+    });
+  }
+});
 
 
 // Initialize
