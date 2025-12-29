@@ -44,10 +44,11 @@ public class HomeController {
     }
 
     public void show(Stage primaryStage, User user) {
-        primaryStage.setTitle("Chatty");
+        primaryStage.setTitle("Kma Chatty");
         primaryStage.setWidth(1200);
         primaryStage.setHeight(700);
         primaryStage.setResizable(true);
+        primaryStage.centerOnScreen();
 
         // Main container
         BorderPane mainContainer = new BorderPane();
@@ -96,6 +97,8 @@ public class HomeController {
         primaryStage.setScene(scene);
         primaryStage.centerOnScreen();
         primaryStage.show();
+
+        Platform.runLater(mainContainer::requestFocus);
     }
 
     private HBox createNavbar(Stage stage) {
@@ -107,14 +110,9 @@ public class HomeController {
         // Logo
         HBox logoContainer = new HBox(10);
         logoContainer.setAlignment(Pos.CENTER_LEFT);
-        Region iconBg = new Region();
-        iconBg.getStyleClass().add("navbar-logo-bg");
-        FontIcon messageIcon = new FontIcon("mdi2m-message-text");
-        messageIcon.setIconSize(20);
-        messageIcon.getStyleClass().add("navbar-logo-icon");
-        Label appName = new Label("Chatty");
+        Label appName = new Label("Kma Chatty");
         appName.getStyleClass().add("navbar-title");
-        logoContainer.getChildren().addAll(iconBg, appName);
+        logoContainer.getChildren().add(appName);
 
         // Right side buttons
         HBox rightButtons = new HBox(10);
@@ -226,16 +224,15 @@ public class HomeController {
         VBox noChatView = new VBox(20);
         noChatView.setAlignment(Pos.CENTER);
         noChatView.getStyleClass().add("no-chat-view");
-        Region iconBg = new Region();
-        iconBg.getStyleClass().add("no-chat-icon-bg");
-        FontIcon messageIcon = new FontIcon("mdi2m-message-text");
-        messageIcon.setIconSize(32);
-        messageIcon.getStyleClass().add("no-chat-icon");
-        Label welcomeLabel = new Label("Welcome to Chatty!");
+        ImageView logo = new ImageView();
+        logo.setFitWidth(200);
+        logo.setFitHeight(200);
+        logo.setImage(new Image(getClass().getResource("/logo.png").toExternalForm()));
+        Label welcomeLabel = new Label("Welcome to Kma Chatty!");
         welcomeLabel.getStyleClass().add("no-chat-title");
         Label subtitleLabel = new Label("Select a conversation from the sidebar to start chatting");
         subtitleLabel.getStyleClass().add("no-chat-subtitle");
-        noChatView.getChildren().addAll(iconBg, welcomeLabel, subtitleLabel);
+        noChatView.getChildren().addAll(logo, welcomeLabel, subtitleLabel);
         noChatView.setId("noChatView");
 
         // Message input
@@ -264,6 +261,7 @@ public class HomeController {
 
         chatArea.getChildren().addAll(chatHeader, noChatView, messageScrollPane, messageInputContainer);
         VBox.setVgrow(messageScrollPane, Priority.ALWAYS);
+        VBox.setVgrow(noChatView, Priority.ALWAYS);
 
         return chatArea;
     }
@@ -424,7 +422,6 @@ public class HomeController {
             }
 
             Label timeLabel = new Label(formatTime(message.getCreatedAt()));
-            System.out.println(message.getCreatedAt());
             timeLabel.getStyleClass().add("message-time");
             messageContent.getChildren().add(timeLabel);
 

@@ -6,6 +6,8 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.application.Platform;
@@ -19,10 +21,11 @@ public class LoginController {
     }
 
     public void show(Stage primaryStage) {
-        primaryStage.setTitle("Chatty - Login");
+        primaryStage.setTitle("Kma Chatty - Login");
         primaryStage.setWidth(1000);
         primaryStage.setHeight(600);
         primaryStage.setResizable(false);
+        primaryStage.centerOnScreen();
 
         // Main container
         HBox mainContainer = new HBox();
@@ -38,18 +41,11 @@ public class LoginController {
         // Logo
         VBox logoContainer = new VBox(10);
         logoContainer.setAlignment(Pos.CENTER);
-        Region iconBg = new Region();
-        iconBg.getStyleClass().add("logo-icon-bg");
-        FontIcon messageIcon = new FontIcon("mdi2m-message-text");
-        messageIcon.setIconSize(24);
-        messageIcon.getStyleClass().add("logo-icon");
-        
-        Label title = new Label("Welcome Back");
-        title.getStyleClass().add("login-title");
-        Label subtitle = new Label("Sign in to your account");
-        subtitle.getStyleClass().add("login-subtitle");
-        
-        logoContainer.getChildren().addAll(iconBg, title, subtitle);
+        ImageView logo = new ImageView();
+        logo.setFitWidth(150);
+        logo.setFitHeight(150);
+        logo.setImage(new Image(getClass().getResource("/logo.png").toExternalForm()));
+        logoContainer.getChildren().add(logo);
 
         // Form fields
         VBox formContainer = new VBox(20);
@@ -180,6 +176,8 @@ public class LoginController {
         scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
         primaryStage.setScene(scene);
         primaryStage.show();
+
+        Platform.runLater(mainContainer::requestFocus);
     }
 
     private void showAlert(String title, String message, Alert.AlertType type) {

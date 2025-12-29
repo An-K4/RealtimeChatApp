@@ -77,17 +77,14 @@ public class AuthService {
         return user;
     }
 
-    public User signup(String fullName, String email, String password) throws IOException {
+    public User signup(String username, String fullName, String email, String password) throws IOException {
         JsonObject signupData = new JsonObject();
+        signupData.addProperty("username", username);
         signupData.addProperty("fullName", fullName);
         signupData.addProperty("email", email);
         signupData.addProperty("password", password);
 
         User user = apiService.post("/auth/signup", signupData, User.class);
-        if (user != null && user.get_id() != null) {
-            this.currentUser = user;
-            saveSessionCookie();
-        }
         return user;
     }
 
