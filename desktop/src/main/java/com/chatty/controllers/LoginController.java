@@ -75,37 +75,41 @@ public class LoginController {
         FontIcon lockIcon = new FontIcon("mdi2l-lock");
         lockIcon.setIconSize(20);
         lockIcon.getStyleClass().add("input-icon");
-        PasswordField passwordField = new PasswordField();
-        passwordField.setPromptText("••••••••");
-        passwordField.getStyleClass().add("text-input");
-        passwordField.setPrefWidth(270);
-        
-        ToggleButton showPasswordBtn = new ToggleButton();
-        FontIcon eyeIcon = new FontIcon("mdi2e-eye");
-        eyeIcon.setIconSize(20);
-        showPasswordBtn.setGraphic(eyeIcon);
-        showPasswordBtn.getStyleClass().add("icon-button");
+        StackPane passwordField = new StackPane();
+
+        PasswordField invisiblePasswordField = new PasswordField();
+        invisiblePasswordField.setPromptText("••••••••");
+        invisiblePasswordField.getStyleClass().add("text-input");
+        invisiblePasswordField.setPrefWidth(270);
+
         TextField visiblePasswordField = new TextField();
         visiblePasswordField.setPromptText("••••••••");
         visiblePasswordField.getStyleClass().add("text-input");
         visiblePasswordField.setVisible(false);
         visiblePasswordField.setPrefWidth(270);
         
+        ToggleButton showPasswordBtn = new ToggleButton();
+        FontIcon eyeIcon = new FontIcon("mdi2e-eye");
+        eyeIcon.setIconSize(20);
+        showPasswordBtn.setGraphic(eyeIcon);
+        showPasswordBtn.getStyleClass().add("icon-button");
+        
         showPasswordBtn.setOnAction(e -> {
             if (showPasswordBtn.isSelected()) {
-                visiblePasswordField.setText(passwordField.getText());
-                passwordField.setVisible(false);
+                visiblePasswordField.setText(invisiblePasswordField.getText());
+                invisiblePasswordField.setVisible(false);
                 visiblePasswordField.setVisible(true);
                 eyeIcon.setIconLiteral("mdi2e-eye-off");
             } else {
-                passwordField.setText(visiblePasswordField.getText());
+                invisiblePasswordField.setText(visiblePasswordField.getText());
                 visiblePasswordField.setVisible(false);
-                passwordField.setVisible(true);
+                invisiblePasswordField.setVisible(true);
                 eyeIcon.setIconLiteral("mdi2e-eye");
             }
         });
-        
-        passwordContainer.getChildren().addAll(lockIcon, passwordField, visiblePasswordField, showPasswordBtn);
+
+        passwordField.getChildren().addAll(invisiblePasswordField, visiblePasswordField);
+        passwordContainer.getChildren().addAll(lockIcon, passwordField, showPasswordBtn);
 
         // Login button
         Button loginButton = new Button("Sign in");
@@ -141,7 +145,7 @@ public class LoginController {
         // Login handler
         loginButton.setOnAction(e -> {
             String username = usernameField.getText();
-            String password = passwordField.isVisible() ? passwordField.getText() : visiblePasswordField.getText();
+            String password = invisiblePasswordField.isVisible() ? invisiblePasswordField.getText() : visiblePasswordField.getText();
             
             if (username.isEmpty() || password.isEmpty()) {
                 showAlert("Error", "Please fill in all fields", Alert.AlertType.ERROR);
