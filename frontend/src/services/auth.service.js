@@ -1,4 +1,4 @@
-import { authAPI } from './api.js';
+import { authAPI } from '../api/auth.api.js';
 
 class AuthService {
   constructor() {
@@ -54,23 +54,26 @@ class AuthService {
     try {
       const response = await authAPI.login(username, password);
       const { token } = response.data;
-      
+
       // Lưu token trước để interceptor có thể sử dụng
       localStorage.setItem('token', token);
-      
+
       // Lấy thông tin user
       const meResponse = await authAPI.getMe();
       const { user } = meResponse.data;
-      
+
       // Lưu user và cập nhật currentUser
       localStorage.setItem('user', JSON.stringify(user));
       this.currentUser = user;
-      
+
       return { success: true, user };
     } catch (error) {
       // Xóa token nếu có lỗi
       localStorage.removeItem('token');
-      const message = error.response?.data?.message || error.response?.data?.error || 'Đăng nhập thất bại';
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Đăng nhập thất bại';
       return { success: false, message };
     }
   }
@@ -81,7 +84,10 @@ class AuthService {
       await authAPI.signup(username, password, fullName, email);
       return { success: true, message: 'Đăng ký thành công' };
     } catch (error) {
-      const message = error.response?.data?.message || error.response?.data?.error || 'Đăng ký thất bại';
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Đăng ký thất bại';
       return { success: false, message };
     }
   }
@@ -116,4 +122,3 @@ class AuthService {
 }
 
 export default new AuthService();
-

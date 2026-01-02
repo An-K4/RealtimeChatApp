@@ -1,5 +1,5 @@
-import { messageAPI } from './api.js';
-import authService from './auth.js';
+import { messageAPI } from '../api/message.api.js';
+import authService from './auth.service.js';
 
 class ChatService {
   constructor() {
@@ -16,7 +16,10 @@ class ChatService {
       this.users = response.data.users;
       return { success: true, users: this.users };
     } catch (error) {
-      const message = error.response?.data?.message || error.response?.data?.error || 'Không thể tải danh sách người dùng';
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Không thể tải danh sách người dùng';
       return { success: false, message };
     }
   }
@@ -29,7 +32,10 @@ class ChatService {
       this.messages[userId] = messages;
       return { success: true, messages };
     } catch (error) {
-      const message = error.response?.data?.message || error.response?.data?.error || 'Không thể tải tin nhắn';
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Không thể tải tin nhắn';
       return { success: false, message };
     }
   }
@@ -39,28 +45,6 @@ class ChatService {
     this.selectedUserId = userId;
     this.selectedUserName = userName;
   }
-
-  // // Thêm tin nhắn vào cache
-  // addMessage(userId, message) {
-  //   if (!this.messages[userId]) {
-  //     this.messages[userId] = [];
-  //   }
-  //   this.messages[userId].push(message);
-  // }
-
-  // Lấy tin nhắn từ cache
-  // getCachedMessages(userId) {
-  //   return this.messages[userId] || [];
-  // }
-
-  // Làm mới tin nhắn
-  // clearMessages(userId) {
-  //   if (userId) {
-  //     delete this.messages[userId];
-  //   } else {
-  //     this.messages = {};
-  //   }
-  // }
 
   // Reset
   reset() {
@@ -72,4 +56,3 @@ class ChatService {
 }
 
 export default new ChatService();
-

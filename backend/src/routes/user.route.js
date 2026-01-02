@@ -4,7 +4,7 @@ const controller = require("../controllers/user.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 const validate = require("../validates/user.validate");
 const uploadMulter = require("../configs/multer.config");
-const uploadCloud = require("../middlewares/updoadClound.middleware");
+const uploadCloud = require("../middlewares/uploadClound.middleware");
 
 
 router.patch("/update", authMiddleware, validate.editAccountValidate, controller.editAccount)
