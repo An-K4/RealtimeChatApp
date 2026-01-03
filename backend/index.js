@@ -47,6 +47,9 @@ app.use(express.json());
 
 databaseConfig.connect();
 
+app.get("/", (req, res) => {
+  res.send("Welcome to chatapp!");
+})
 UserRouter(app)
 
 const httpServer = createServer(app);
