@@ -241,6 +241,23 @@
     -fx-text-fill: #666666;
 }
 
+.video-call-button {
+    -fx-background-color: #667eea;
+    -fx-background-radius: 20;
+    -fx-pref-width: 36;
+    -fx-pref-height: 36;
+    -fx-cursor: hand;
+    -fx-padding: 5;
+}
+
+.video-call-button:hover {
+    -fx-background-color: #5568d3;
+}
+
+.video-call-button .ikonli-font-icon {
+    -fx-icon-color: #ffffff;
+}
+
 .close-button {
     -fx-background-color: transparent;
     -fx-cursor: hand;

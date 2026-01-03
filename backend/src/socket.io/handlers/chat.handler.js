@@ -64,4 +64,38 @@ module.exports =  (io, socket) => {
       isTyping: false
     })
   })
+  // ================= VIDEO CALL SIGNALING =================
+
+// A gọi B
+  socket.on("call:offer", ({ to, offer }) => {
+    // to = userId của người nhận
+    io.to(to.toString()).emit("call:offer", {
+      from: socket.user._id.toString(),
+      offer
+    });
+  });
+
+// B trả lời A
+  socket.on("call:answer", ({ to, answer }) => {
+    io.to(to.toString()).emit("call:answer", {
+      from: socket.user._id.toString(),
+      answer
+    });
+  });
+
+// Trao đổi ICE candidate
+  socket.on("call:ice", ({ to, candidate }) => {
+    io.to(to.toString()).emit("call:ice", {
+      from: socket.user._id.toString(),
+      candidate
+    });
+  });
+
+// Kết thúc cuộc gọi
+  socket.on("call:end", ({ to }) => {
+    io.to(to.toString()).emit("call:end", {
+      from: socket.user._id.toString()
+    });
+  });
+
 } 

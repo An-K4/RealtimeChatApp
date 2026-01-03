@@ -315,6 +315,19 @@ public class HomeController {
             userStatus.getStyleClass().add("chat-header-status");
             userInfo.getChildren().addAll(userName, userStatus);
 
+            // Video call button
+            Button videoCallBtn = new Button();
+            FontIcon videoIcon = new FontIcon("mdi2v-video");
+            videoIcon.setIconSize(20);
+            videoCallBtn.setGraphic(videoIcon);
+            videoCallBtn.getStyleClass().add("video-call-button");
+            videoCallBtn.setTooltip(new Tooltip("Gọi video"));
+            videoCallBtn.setOnAction(e -> {
+                if (selectedUser != null) {
+                    startVideoCall(selectedUser.get_id());
+                }
+            });
+
             Button closeBtn = new Button();
             FontIcon closeIcon = new FontIcon("mdi2c-close");
             closeIcon.setIconSize(20);
@@ -338,7 +351,7 @@ public class HomeController {
             });
 
             HBox.setHgrow(userInfo, Priority.ALWAYS);
-            chatHeader.getChildren().addAll(avatar, userInfo, closeBtn);
+            chatHeader.getChildren().addAll(avatar, userInfo, videoCallBtn, closeBtn);
 
             // Hide no chat view
             VBox noChatView = (VBox) (messageScrollPane.getParent()).lookup("#noChatView");
@@ -494,6 +507,12 @@ public class HomeController {
                 return "";
             }
         }
+    }
+
+    private void startVideoCall(String friendId) {
+        // TODO: Implement video call functionality
+        // For now, just show an alert
+        showAlert("Video Call", "Video call feature coming soon! Friend ID: " + friendId, Alert.AlertType.INFORMATION);
     }
 
     private void showAlert(String title, String message, Alert.AlertType type) {

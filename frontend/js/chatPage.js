@@ -157,6 +157,17 @@ async function selectUser(userId, userName) {
   noChatSelected.style.display = 'none';
   chatMessagesContainer.style.display = 'flex';
   
+  // Ensure video call button is visible
+  const videoCallBtn = document.getElementById("video-call-btn");
+  if (videoCallBtn) {
+    videoCallBtn.style.display = 'flex';
+    videoCallBtn.style.visibility = 'visible';
+    videoCallBtn.style.opacity = '1';
+    console.log('Video call button found and made visible');
+  } else {
+    console.error('Video call button not found!');
+  }
+  
   // Update chat header with name and online status
   if (chatNameText) {
     chatNameText.textContent = userName;
@@ -866,6 +877,33 @@ socket.on("seen-message", (data) => {
     });
   }
 });
+const videoCallBtn = document.getElementById("video-call-btn");
+
+if (videoCallBtn) {
+  videoCallBtn.addEventListener("click", () => {
+    if (!chatService.selectedUserId) {
+      alert("Vui lòng chọn người để gọi");
+      return;
+    }
+
+    // Mở cửa sổ call (WebRTC)
+    startVideoCall(chatService.selectedUserId);
+  });
+}
+function startVideoCall(friendId) {
+  // mở popup / tab / modal cho WebRTC
+  const callWindow = window.open(
+      `/call.html?to=${friendId}`,
+      "_blank",
+      "width=900,height=600"
+  );
+
+  if (!callWindow) {
+    alert("Trình duyệt chặn popup");
+  }
+}
+
+
 
 
 // Initialize

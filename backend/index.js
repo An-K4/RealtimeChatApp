@@ -9,8 +9,15 @@ const UserRouter = require("./src/routes/index.route")
 const {
   createServer
 } = require("http");
+const path = require("path");
+
 
 const app = express();
+// ===== SERVE FRONTEND STATIC FILES =====
+app.use(express.static(path.join(__dirname, "../frontend")));
+
+
+
 
 // middleware 
 // CORS configuration
