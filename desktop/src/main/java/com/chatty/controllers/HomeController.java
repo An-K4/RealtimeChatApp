@@ -33,8 +33,10 @@ public class HomeController {
     private VBox messageContainer;
     private ScrollPane messageScrollPane;
     private TextField messageInput;
-    private VBox sidebarUserList;
     private ListView<User> userListView;
+    private Stage primaryStage;
+    private BorderPane mainContainer;
+    private HBox centerContent;
 
     public HomeController() {
         this.authService = new AuthService();
@@ -44,6 +46,7 @@ public class HomeController {
     }
 
     public void show(Stage primaryStage, User user) {
+        this.primaryStage = primaryStage;
         primaryStage.setTitle("Kma Chatty");
         primaryStage.setWidth(1200);
         primaryStage.setHeight(700);
@@ -51,7 +54,7 @@ public class HomeController {
         primaryStage.centerOnScreen();
 
         // Main container
-        BorderPane mainContainer = new BorderPane();
+        mainContainer = new BorderPane();
         mainContainer.getStyleClass().add("home-container");
 
         // Navbar
@@ -59,7 +62,7 @@ public class HomeController {
         mainContainer.setTop(navbar);
 
         // Center content
-        HBox centerContent = new HBox();
+        centerContent = new HBox();
         centerContent.getStyleClass().add("chat-container");
 
         // Sidebar
@@ -129,6 +132,7 @@ public class HomeController {
         FontIcon profileIcon = new FontIcon("mdi2a-account");
         profileIcon.setIconSize(18);
         profileBtn.setGraphic(profileIcon);
+        profileBtn.setOnAction(e -> showProfile());
 
         Button logoutBtn = new Button("Logout");
         logoutBtn.getStyleClass().add("nav-button");
@@ -507,6 +511,109 @@ public class HomeController {
                 return "";
             }
         }
+    }
+
+    private void showProfile() {
+        User currentUser = authService.getCurrentUser();
+        if (currentUser == null) {
+            showAlert("Error", "User not found", Alert.AlertType.ERROR);
+            return;
+        }
+
+        // Create profile view
+        VBox profileView = createProfileView(currentUser);
+        
+        // Replace center content with profile view
+        mainContainer.setCenter(profileView);
+    }
+
+    private VBox createProfileView(User user) {
+        VBox profileContainer = new VBox(20);
+        profileContainer.setPadding(new Insets(30));
+        profileContainer.getStyleClass().add("profile-container");
+        profileContainer.setAlignment(Pos.TOP_CENTER);
+
+        // Back button
+        HBox headerBox = new HBox();
+        headerBox.setAlignment(Pos.CENTER_LEFT);
+        Button backBtn = new Button("Quay lại");
+        FontIcon backIcon = new FontIcon("mdi2a-arrow-left");
+        backIcon.setIconSize(18);
+        backBtn.setGraphic(backIcon);
+        backBtn.getStyleClass().add("back-button");
+        backBtn.setOnAction(e -> {
+            // Restore original center content
+            mainContainer.setCenter(centerContent);
+        });
+        headerBox.getChildren().add(backBtn);
+
+        // Profile content
+        VBox profileContent = new VBox(20);
+        profileContent.setAlignment(Pos.TOP_CENTER);
+        profileContent.setMaxWidth(600);
+
+        // Avatar
+        ImageView avatar = new ImageView();
+        avatar.setFitWidth(120);
+        avatar.setFitHeight(120);
+        avatar.getStyleClass().add("profile-avatar-large");
+        try {
+            if (user.getProfilePic() != null && !user.getProfilePic().isEmpty()) {
+                avatar.setImage(new Image(user.getProfilePic()));
+            } else {
+                avatar.setImage(new Image(getClass().getResource("/account.png").toExternalForm()));
+            }
+        } catch (Exception e) {
+            avatar.setImage(new Image(getClass().getResource("/account.png").toExternalForm()));
+        }
+
+        // User name
+        Label nameLabel = new Label(user.getFullName() != null ? user.getFullName() : "N/A");
+        nameLabel.getStyleClass().add("profile-name");
+
+        // Email
+        Label emailLabel = new Label(user.getEmail() != null ? user.getEmail() : "N/A");
+        emailLabel.getStyleClass().add("profile-email");
+
+        // User ID
+        Label idLabel = new Label("ID: " + (user.get_id() != null ? user.get_id() : "N/A"));
+        idLabel.getStyleClass().add("profile-id");
+
+        // Divider
+        Separator divider = new Separator();
+        divider.setMaxWidth(400);
+
+        // Info section
+        VBox infoSection = new VBox(15);
+        infoSection.setAlignment(Pos.CENTER_LEFT);
+        infoSection.setPadding(new Insets(20, 0, 0, 0));
+
+        HBox nameInfo = createInfoRow("Họ tên:", user.getFullName() != null ? user.getFullName() : "N/A");
+        HBox emailInfo = createInfoRow("Email:", user.getEmail() != null ? user.getEmail() : "N/A");
+        HBox idInfo = createInfoRow("User ID:", user.get_id() != null ? user.get_id() : "N/A");
+
+        infoSection.getChildren().addAll(nameInfo, emailInfo, idInfo);
+
+        profileContent.getChildren().addAll(avatar, nameLabel, emailLabel, divider, infoSection);
+        profileContainer.getChildren().addAll(headerBox, profileContent);
+
+        return profileContainer;
+    }
+
+    private HBox createInfoRow(String label, String value) {
+        HBox row = new HBox(15);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(5, 0, 5, 0));
+
+        Label labelField = new Label(label);
+        labelField.getStyleClass().add("profile-info-label");
+        labelField.setMinWidth(100);
+
+        Label valueField = new Label(value);
+        valueField.getStyleClass().add("profile-info-value");
+
+        row.getChildren().addAll(labelField, valueField);
+        return row;
     }
 
     private void startVideoCall(String friendId) {
