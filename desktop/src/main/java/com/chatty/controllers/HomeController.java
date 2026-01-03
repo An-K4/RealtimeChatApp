@@ -5,6 +5,7 @@ import com.chatty.models.User;
 import com.chatty.services.AuthService;
 import com.chatty.services.ChatService;
 import com.chatty.services.SocketService;
+import com.chatty.services.ThemeService;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -37,6 +38,7 @@ public class HomeController {
     private Stage primaryStage;
     private BorderPane mainContainer;
     private HBox centerContent;
+    private Scene scene;
 
     public HomeController() {
         this.authService = new AuthService();
@@ -95,8 +97,10 @@ public class HomeController {
             });
         }
 
-        Scene scene = new Scene(mainContainer);
-        scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
+        scene = new Scene(mainContainer);
+        // Load theme preference
+        String themeStylesheet = ThemeService.getThemeStylesheet();
+        scene.getStylesheets().add(getClass().getResource(themeStylesheet).toExternalForm());
         primaryStage.setScene(scene);
         primaryStage.centerOnScreen();
         primaryStage.show();
@@ -126,6 +130,7 @@ public class HomeController {
         FontIcon settingsIcon = new FontIcon("mdi2c-cog");
         settingsIcon.setIconSize(18);
         settingsBtn.setGraphic(settingsIcon);
+        settingsBtn.setOnAction(e -> showSettings());
 
         Button profileBtn = new Button("Profile");
         profileBtn.getStyleClass().add("nav-button");
@@ -614,6 +619,100 @@ public class HomeController {
 
         row.getChildren().addAll(labelField, valueField);
         return row;
+    }
+
+    private void showSettings() {
+        // Create settings view
+        VBox settingsView = createSettingsView();
+        
+        // Replace center content with settings view
+        mainContainer.setCenter(settingsView);
+    }
+
+    private VBox createSettingsView() {
+        VBox settingsContainer = new VBox(20);
+        settingsContainer.setPadding(new Insets(30));
+        settingsContainer.getStyleClass().add("settings-container");
+        settingsContainer.setAlignment(Pos.TOP_CENTER);
+
+        // Back button
+        HBox headerBox = new HBox();
+        headerBox.setAlignment(Pos.CENTER_LEFT);
+        Button backBtn = new Button("Quay lại");
+        FontIcon backIcon = new FontIcon("mdi2a-arrow-left");
+        backIcon.setIconSize(18);
+        backBtn.setGraphic(backIcon);
+        backBtn.getStyleClass().add("back-button");
+        backBtn.setOnAction(e -> {
+            // Restore original center content
+            mainContainer.setCenter(centerContent);
+        });
+        headerBox.getChildren().add(backBtn);
+
+        // Settings content
+        VBox settingsContent = new VBox(30);
+        settingsContent.setAlignment(Pos.TOP_CENTER);
+        settingsContent.setMaxWidth(600);
+
+        // Title
+        Label titleLabel = new Label("Cài đặt");
+        titleLabel.getStyleClass().add("settings-title");
+
+        // Theme section
+        VBox themeSection = new VBox(15);
+        themeSection.setAlignment(Pos.CENTER_LEFT);
+        themeSection.setPadding(new Insets(20));
+        themeSection.getStyleClass().add("settings-section");
+
+        Label themeLabel = new Label("Giao diện");
+        themeLabel.getStyleClass().add("settings-section-title");
+
+        ToggleGroup themeGroup = new ToggleGroup();
+        
+        RadioButton lightTheme = new RadioButton("Sáng (Light)");
+        lightTheme.setToggleGroup(themeGroup);
+        lightTheme.getStyleClass().add("theme-radio");
+        
+        RadioButton darkTheme = new RadioButton("Tối (Dark)");
+        darkTheme.setToggleGroup(themeGroup);
+        darkTheme.getStyleClass().add("theme-radio");
+
+        // Set current theme
+        ThemeService.Theme currentTheme = ThemeService.getTheme();
+        if (currentTheme == ThemeService.Theme.DARK) {
+            darkTheme.setSelected(true);
+        } else {
+            lightTheme.setSelected(true);
+        }
+
+        // Theme change handler
+        themeGroup.selectedToggleProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue == lightTheme) {
+                ThemeService.setTheme(ThemeService.Theme.LIGHT);
+                applyTheme("/styles.css");
+            } else if (newValue == darkTheme) {
+                ThemeService.setTheme(ThemeService.Theme.DARK);
+                applyTheme("/styles-dark.css");
+            }
+        });
+
+        VBox themeOptions = new VBox(10);
+        themeOptions.getChildren().addAll(lightTheme, darkTheme);
+        themeSection.getChildren().addAll(themeLabel, themeOptions);
+
+        settingsContent.getChildren().addAll(titleLabel, themeSection);
+        settingsContainer.getChildren().addAll(headerBox, settingsContent);
+
+        return settingsContainer;
+    }
+
+    private void applyTheme(String stylesheet) {
+        if (scene != null) {
+            // Remove old stylesheets
+            scene.getStylesheets().clear();
+            // Add new stylesheet
+            scene.getStylesheets().add(getClass().getResource(stylesheet).toExternalForm());
+        }
     }
 
     private void startVideoCall(String friendId) {
