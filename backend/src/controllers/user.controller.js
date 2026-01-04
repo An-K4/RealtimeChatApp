@@ -89,3 +89,28 @@ module.exports.uploadAvatar = async (req, res) => {
     })
   }
 }
+
+module.exports.searchUser = async (req, res) => {
+  try {
+    const { username } = req.query;
+  
+    if(!username) {
+      return res.status(400).json({ message: "Vui lòng cung cấp username để tìm kiếm!"});
+    }
+
+    const userId = req.user.id;
+    const users = await User.find({
+      _id: { $ne: userId }, // Loại trừ user hiện tại
+      username: { $regex: username, $options: 'i'}
+    }).select('-password')
+
+    return res.status(200).json({
+      message: "Tìm kiếm thành công!",
+      users
+    })
+
+  } catch (error) {
+    console.log("Search user error:", error);
+    return res.status(500).json({ message: "Lỗi server khi tìm kiếm user!"});
+  }
+}

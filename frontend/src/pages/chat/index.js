@@ -7,6 +7,7 @@ import { escapeHtml } from '../../utils/escapeHtml.js';
 // DOM Elements
 const logoutBtn = document.getElementById('logout-btn');
 const usersList = document.getElementById('users-list');
+const searchUserInput = document.getElementById('search-user-input');
 const noChatSelected = document.getElementById('no-chat-selected');
 const chatMessagesContainer = document.getElementById('chat-messages-container');
 const chatWithName = document.getElementById('chat-with-name');
@@ -49,6 +50,10 @@ const onlineUsers = new Map();
 let typingTimeout = null;
 const TYPING_TIMEOUT = 2000; // 2 giây
 
+// Search debounce timeout
+let searchTimeout = null;
+const SEARCH_DEBOUNCE = 500; // 500ms
+
 if (profileEditForm) {
   setProfileFormDisabled(true);
   profileEditForm.addEventListener('submit', handleProfileUpdate);
@@ -82,6 +87,38 @@ logoutBtn.addEventListener('click', async () => {
   await authService.logout();
   window.location.href = '/index.html';
 });
+
+// Search user handler
+if (searchUserInput) {
+  searchUserInput.addEventListener('input', async (e) => {
+    const searchTerm = e.target.value.trim();
+    
+    // Clear previous timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    // Debounce search
+    searchTimeout = setTimeout(async () => {
+      if (searchTerm === '') {
+        // Nếu không có search term, load tất cả users
+        await loadUsers();
+      } else {
+        // Gọi API search
+        usersList.innerHTML = '<div class="loading">Đang tìm kiếm...</div>';
+        
+        try {
+          const response = await userAPI.searchUsers(searchTerm);
+          const users = response.data?.users || [];
+          renderUsers(users);
+        } catch (error) {
+          const message = error.response?.data?.message || 'Lỗi khi tìm kiếm';
+          usersList.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+      }
+    }, SEARCH_DEBOUNCE);
+  });
+}
 
 // Load users list
 async function loadUsers() {
@@ -122,6 +159,22 @@ function renderUsers(users) {
       const avatarStyle = avatarUrl ? `style="background-image: url('${avatarUrl}');"` : '';
       const itemClass = isOnline ? 'user-item online' : 'user-item';
 
+      // Unread badge
+      const unreadBadge = user.unreadCount > 0 
+        ? `<span class="unread-badge">${user.unreadCount}</span>` 
+        : '';
+
+      // Last message
+      let lastMessageText = '';
+      if (user.lastMessage) {
+        const prefix = user.lastMessage.isMine ? 'Bạn: ' : '';
+        const content = user.lastMessage.content || '';
+        const truncated = content.length > 30 
+          ? content.slice(0, 30) + '...' 
+          : content;
+        lastMessageText = prefix + truncated;
+      }
+
       return `
       <div class="${itemClass}" data-user-id="${user._id}" data-user-name="${displayName}">
         <div class="${avatarClass}" ${avatarStyle}>
@@ -131,8 +184,9 @@ function renderUsers(users) {
           <h4>
             ${displayName}
             <span class="user-item-online-dot"></span>
+            ${unreadBadge}
           </h4>
-          <p>${username ? '@' + username : ''}</p>
+          <p class="last-message">${lastMessageText || '@' + username}</p>
         </div>
       </div>
     `;
@@ -149,6 +203,12 @@ function renderUsers(users) {
       document.querySelectorAll('.user-item').forEach((i) => i.classList.remove('active'));
       // Add active class to clicked item
       item.classList.add('active');
+
+      // Clear unread badge when opening chat
+      const badge = item.querySelector('.unread-badge');
+      if (badge) {
+        badge.remove();
+      }
 
       selectUser(userId, userName);
     });
@@ -179,12 +239,10 @@ async function selectUser(userId, userName) {
   if (result.success) {
     renderMessages(result.messages);
 
-    // Emit seen-message event để thông báo đã xem tin nhắn
-    if (result.messages.length > 0) {
-      socket.emit('seen-message', {
-        senderId: userId, // người gửi tin (người mình đang chat)
-      });
-    }
+    // Emit seen-message event để thông báo đã xem tin nhắn từ friend
+    socket.emit('seen-message', {
+      senderId: userId, // ID của người gửi tin (friend)
+    });
   } else {
     messagesList.innerHTML = `<div class="error-message">${result.message}</div>`;
   }
@@ -362,6 +420,7 @@ function clearDeliveredStatuses() {
 function renderMessages(messages) {
   const currentUser = authService.getUser();
   const currentUserId = currentUser?._id;
+  const friendId = chatService.selectedUserId;
 
   if (messages.length === 0) {
     messagesList.innerHTML = '<div class="loading">Chưa có tin nhắn nào</div>';
@@ -376,7 +435,21 @@ function renderMessages(messages) {
           : message.senderId.toString();
 
       const isSent = senderId === currentUserId?.toString() || senderId === currentUserId;
-      const statusLabel = isSent ? 'Đã gửi' : '';
+      
+      // Check if message has been seen by friend
+      let statusLabel = '';
+      if (isSent) {
+        if (message.seenBy && Array.isArray(message.seenBy) && message.seenBy.length > 0) {
+          // Check if friendId is in seenBy array
+          const seenByIds = message.seenBy.map(id => 
+            typeof id === 'object' ? (id._id || id.toString()) : id.toString()
+          );
+          const isSeen = seenByIds.includes(friendId?.toString());
+          statusLabel = isSeen ? 'Đã xem' : 'Đã gửi';
+        } else {
+          statusLabel = 'Đã gửi';
+        }
+      }
       const statusAction = isSent ? 'Gửi' : 'Nhận';
 
       return `
@@ -477,20 +550,23 @@ async function sendMessage() {
   // Scroll to bottom
   scrollToLatestMessage();
 
-  try {
-    // Emit message to server
-    socket.emit('send-message', {
-      receiverId: chatService.selectedUserId,
-      content: message,
-    });
-
-    // Update status to sent
-    applyStatusMetadata(statusDiv, 'Đã gửi', 'Gửi', new Date());
-  } catch (error) {
-    // Update status to failed
-    statusDiv.innerHTML = 'Gửi thất bại';
-    statusDiv.classList.add('failed');
-  }
+  // Emit message to server with callback
+  socket.emit('send-message', {
+    receiverId: chatService.selectedUserId,
+    content: message,
+  }, (response) => {
+    if (response && response.success) {
+      // Update status to sent
+      applyStatusMetadata(statusDiv, 'Đã gửi', 'Gửi', new Date());
+      
+      // Update last message in user list (tin mình gửi)
+      updateUserItemLastMessage(chatService.selectedUserId, message, true);
+    } else {
+      // Update status to failed
+      applyStatusMetadata(statusDiv, 'Gửi thất bại', 'Lỗi', new Date());
+      statusDiv.classList.add('failed');
+    }
+  });
 }
 
 async function handleProfileUpdate(event) {
@@ -648,18 +724,21 @@ socket.on('receive-message', (message) => {
   // Tự động cuộn xuống tin nhắn mới nhất khi nhận tin
   scrollToLatestMessage();
 
-  // Emit seen-message nếu đang xem chat với người này
+  // Emit seen-message nếu đang xem chat với người gửi
   const senderId = message.senderId || message.sender;
   if (
     senderId &&
     chatService.selectedUserId &&
     senderId.toString() === chatService.selectedUserId.toString()
   ) {
-    // Gửi thông báo đã xem tin nhắn về cho người gửi (senderId)
+    // Gửi thông báo đã xem tin nhắn về cho người gửi
     socket.emit('seen-message', {
-      senderId: senderId.toString(),
+      senderId: senderId.toString(), // ID người gửi tin
     });
   }
+
+  // Update user list: lastMessage và unreadCount
+  updateUserItemOnNewMessage(senderId, messageContent);
 });
 
 socket.on('connect_error', (err) => {
@@ -702,6 +781,79 @@ function updateUserOnlineStatus(userId, isOnline) {
   }
 }
 
+// Update user item when receiving new message
+function updateUserItemOnNewMessage(senderId, messageContent) {
+  if (!senderId) return;
+  
+  const senderIdStr = senderId.toString();
+  const userItem = document.querySelector(`.user-item[data-user-id="${senderIdStr}"]`);
+  
+  if (!userItem) return;
+  
+  // Update last message
+  const lastMessageEl = userItem.querySelector('.last-message');
+  if (lastMessageEl) {
+    const truncated = messageContent.length > 30 
+      ? messageContent.slice(0, 30) + '...' 
+      : messageContent;
+    lastMessageEl.textContent = truncated;
+  }
+  
+  // Update or create unread badge nếu không đang xem chat với người này
+  const isCurrentChat = chatService.selectedUserId?.toString() === senderIdStr;
+  
+  if (!isCurrentChat) {
+    const h4 = userItem.querySelector('.user-item-meta h4');
+    if (!h4) return;
+    
+    let badge = h4.querySelector('.unread-badge');
+    
+    if (badge) {
+      // Tăng số count
+      const currentCount = parseInt(badge.textContent) || 0;
+      badge.textContent = currentCount + 1;
+    } else {
+      // Tạo badge mới
+      badge = document.createElement('span');
+      badge.classList.add('unread-badge');
+      badge.textContent = '1';
+      h4.appendChild(badge);
+    }
+  }
+  
+  // Di chuyển user lên đầu danh sách
+  const parentList = userItem.parentElement;
+  if (parentList) {
+    parentList.insertBefore(userItem, parentList.firstChild);
+  }
+}
+
+// Update last message in user item (for sent messages)
+function updateUserItemLastMessage(userId, messageContent, isMine = false) {
+  if (!userId) return;
+  
+  const userIdStr = userId.toString();
+  const userItem = document.querySelector(`.user-item[data-user-id="${userIdStr}"]`);
+  
+  if (!userItem) return;
+  
+  // Update last message
+  const lastMessageEl = userItem.querySelector('.last-message');
+  if (lastMessageEl) {
+    const prefix = isMine ? 'Bạn: ' : '';
+    const truncated = messageContent.length > 30 
+      ? messageContent.slice(0, 30) + '...' 
+      : messageContent;
+    lastMessageEl.textContent = prefix + truncated;
+  }
+  
+  // Di chuyển user lên đầu danh sách
+  const parentList = userItem.parentElement;
+  if (parentList) {
+    parentList.insertBefore(userItem, parentList.firstChild);
+  }
+}
+
 socket.on('noti-online', (data) => {
   updateUserOnlineStatus(data?.id, true);
 });
@@ -735,13 +887,17 @@ socket.on('typing-stop', (data) => {
 });
 
 socket.on('seen-message', (data) => {
-  const senderId = data?.senderId;
-  if (!senderId || !chatService.selectedUserId) return;
+  const viewerId = data?.viewerId; // Người xem tin nhắn (người bên kia)
+  const seenAt = data?.seenAt;
+  
+  if (!viewerId || !chatService.selectedUserId) return;
 
-  if (senderId.toString() === chatService.selectedUserId.toString()) {
-    // Clear previous delivered statuses, then mark last sent message as seen
+  // Nếu người xem là người đang chat với mình, mark messages as seen
+  if (viewerId.toString() === chatService.selectedUserId.toString()) {
+    // Clear previous delivered statuses
     clearDeliveredStatuses();
 
+    // Mark all sent messages to this user as seen
     const sentMessages = messagesList?.querySelectorAll('.message.sent');
     if (!sentMessages || sentMessages.length === 0) return;
 
@@ -749,7 +905,7 @@ socket.on('seen-message', (data) => {
     const statusDiv = lastSent.querySelector('.message-status');
     if (statusDiv) {
       removeRetryButton(statusDiv);
-      applyStatusMetadata(statusDiv, 'Đã xem', 'Xem', new Date());
+      applyStatusMetadata(statusDiv, 'Đã xem', 'Xem', seenAt || new Date());
     }
   }
 });

@@ -7,8 +7,9 @@ const uploadMulter = require("../configs/multer.config");
 const uploadCloud = require("../middlewares/uploadClound.middleware");
 
 
-router.patch("/update", authMiddleware, validate.editAccountValidate, controller.editAccount)
+router.patch("/update", authMiddleware, validate.editAccountValidate, controller.editAccount);
 router.patch("/upload-avatar", authMiddleware, uploadMulter.single("avatar"), uploadCloud.upload, controller.uploadAvatar);
+router.get("/search", authMiddleware, controller.searchUser);
 
 module.exports = router;
 

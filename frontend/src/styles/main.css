@@ -525,6 +525,26 @@ body.auth-page {
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
+}
+
+.unread-badge {
+  background: #ef4444;
+  color: white;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: auto;
+  display: inline-block;
+  min-width: 18px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+.user-item.active .unread-badge {
+  background: rgba(255, 255, 255, 0.9);
+  color: #667eea;
 }
 
 .user-item-online-dot {
@@ -552,6 +572,15 @@ body.auth-page {
   color: #888;
   margin: 0;
   font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-item-meta p.last-message {
+  color: #666;
+  font-size: 12px;
+  max-width: 100%;
 }
 
 .user-item.active .user-item-meta h4 {

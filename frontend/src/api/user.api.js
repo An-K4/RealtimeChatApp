@@ -13,4 +13,7 @@ export const userAPI = {
       },
     });
   },
+
+  // Search users by username
+  searchUsers: (username) => api.get(`/users/search?username=${encodeURIComponent(username)}`),
 };

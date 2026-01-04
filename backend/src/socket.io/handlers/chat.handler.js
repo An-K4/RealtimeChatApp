@@ -30,15 +30,30 @@ module.exports =  (io, socket) => {
   })
 
   // Xử lý khi người dùng xem tin nhắn
-  socket.on("seen-message", (data) => {
-    const { senderId } = data;
-    if (!senderId) return;
+  socket.on("seen-message", async (data) => {
+    try {
+      const { senderId } = data;
+      const viewerId = socket.user._id;
+      
+      if (!senderId || !viewerId) return;
 
-    // Gửi thông báo về cho người gửi tin rằng tin nhắn đã được xem
-    io.to(senderId.toString()).emit("seen-message", {
-      viewerId: socket.user._id.toString(), // người xem tin nhắn
-      seenAt: new Date()
-    });
+      // Update DB: Mark seen cho tất cả messages từ senderId đến viewerId
+      const result = await Message.updateMany(
+        { senderId, receiverId: viewerId, seenBy: { $nin: [viewerId] } },
+        { $push: { seenBy: viewerId } }
+      );
+
+      // Chỉ emit nếu có messages được update
+      if (result.modifiedCount > 0) {
+        // Gửi thông báo về cho người gửi tin rằng tin nhắn đã được xem
+        io.to(senderId.toString()).emit("seen-message", {
+          viewerId: viewerId.toString(), // người xem tin nhắn
+          seenAt: new Date()
+        });
+      }
+    } catch (error) {
+      console.error("Error marking seen:", error);
+    }
   })
 
   // Xử lý khi user bắt đầu gõ
@@ -47,9 +62,9 @@ module.exports =  (io, socket) => {
     if(!receiverId) return;
 
     // Gửi thông báo tới người nhận rằng user này đang gõ
-    io.to(receiverId.toString()).emit("user-typing", {
-      userId: socket.user._id.toString(),
-      isTyping: true
+    io.to(receiverId.toString()).emit("typing-start", {
+      senderId: socket.user._id.toString(),
+      senderName: socket.user.fullName || socket.user.username
     })
   })
   
@@ -59,9 +74,8 @@ module.exports =  (io, socket) => {
     if(!receiverId) return;
 
     // Gửi thông báo tới người nhận rằng user này đã dừng gõ
-    io.to(receiverId.toString()).emit("user-typing", {
-      userId: socket.user._id.toString(),
-      isTyping: false
+    io.to(receiverId.toString()).emit("typing-stop", {
+      senderId: socket.user._id.toString()
     })
   })
 } 
