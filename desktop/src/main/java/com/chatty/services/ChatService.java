@@ -31,6 +31,7 @@ public class ChatService {
 
                 Gson gson = new Gson();
                 Type listType = new TypeToken<List<User>>(){}.getType();
+                System.out.println(userArray);
                 return gson.fromJson(userArray, listType);
             }
 

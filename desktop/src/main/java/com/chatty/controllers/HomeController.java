@@ -9,6 +9,7 @@ import com.chatty.services.ThemeService;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
@@ -50,8 +51,8 @@ public class HomeController {
     public void show(Stage primaryStage, User user) {
         this.primaryStage = primaryStage;
         primaryStage.setTitle("Kma Chatty");
-        primaryStage.setWidth(1200);
-        primaryStage.setHeight(700);
+        primaryStage.setMinWidth(1000);
+        primaryStage.setMinHeight(600);
         primaryStage.setResizable(true);
         primaryStage.centerOnScreen();
 
@@ -97,11 +98,12 @@ public class HomeController {
             });
         }
 
-        scene = new Scene(mainContainer);
+        scene = new Scene(mainContainer, 1200, 700);
         // Load theme preference
         String themeStylesheet = ThemeService.getThemeStylesheet();
         scene.getStylesheets().add(getClass().getResource(themeStylesheet).toExternalForm());
         primaryStage.setScene(scene);
+        primaryStage.sizeToScene();
         primaryStage.centerOnScreen();
         primaryStage.show();
 
@@ -120,6 +122,9 @@ public class HomeController {
         Label appName = new Label("Kma Chatty");
         appName.getStyleClass().add("navbar-title");
         logoContainer.getChildren().add(appName);
+
+        Pane spacer = new Pane();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
         // Right side buttons
         HBox rightButtons = new HBox(10);
@@ -154,7 +159,7 @@ public class HomeController {
         rightButtons.getChildren().addAll(settingsBtn, profileBtn, logoutBtn);
 
         HBox.setHgrow(rightButtons, Priority.ALWAYS);
-        navbar.getChildren().addAll(logoContainer, rightButtons);
+        navbar.getChildren().addAll(logoContainer, spacer, rightButtons);
 
         return navbar;
     }
@@ -304,18 +309,8 @@ public class HomeController {
 
             // Update header content
             chatHeader.getChildren().clear();
-            ImageView avatar = new ImageView();
-            avatar.setFitWidth(40);
-            avatar.setFitHeight(40);
-            avatar.getStyleClass().add("chat-header-avatar");
-            try {
-                if (user.getProfilePic() != null && !user.getProfilePic().isEmpty()) {
-                    avatar.setImage(new Image(user.getProfilePic()));
-                }
-            } catch (Exception e) {
-                // Use default - no image
-                avatar.setImage(null);
-            }
+            Node avatarNode = createAvatarNode(user.getProfilePic(), 40, 24);
+            avatarNode.getStyleClass().add("chat-header-avatar");
 
             VBox userInfo = new VBox(5);
             Label userName = new Label(user.getFullName());
@@ -360,7 +355,7 @@ public class HomeController {
             });
 
             HBox.setHgrow(userInfo, Priority.ALWAYS);
-            chatHeader.getChildren().addAll(avatar, userInfo, videoCallBtn, closeBtn);
+            chatHeader.getChildren().addAll(avatarNode, userInfo, videoCallBtn, closeBtn);
 
             // Hide no chat view
             VBox noChatView = (VBox) (messageScrollPane.getParent()).lookup("#noChatView");
@@ -410,24 +405,16 @@ public class HomeController {
             HBox messageBox = new HBox(10);
             messageBox.getStyleClass().add(isMyMessage ? "message-box-right" : "message-box-left");
 
+            // --- PHẦN AVATAR BÊN TRÁI (Cho tin nhắn của đối phương) ---
             if (!isMyMessage) {
-                ImageView avatar = new ImageView();
-                avatar.setFitWidth(40);
-                avatar.setFitHeight(40);
-                avatar.getStyleClass().add("message-avatar");
-
-                if (currentUser.getProfilePic() != null && !currentUser.getProfilePic().isEmpty()) {
-                    avatar.setImage(new Image(currentUser.getProfilePic()));
-                } else {
-                    // Use default - no image
-                    avatar.setImage(new Image(getClass().getResource("/account.png").toExternalForm()));
-                }
-
-                messageBox.getChildren().add(avatar);
+                // Lấy ảnh của selectedUser (người đang chat cùng)
+                messageBox.getChildren().add(createAvatarNode(selectedUser.getProfilePic(), 40, 24));
             }
 
             VBox messageContent = new VBox(5);
+            messageContent.setMaxWidth(400); // Giới hạn độ rộng tin nhắn
 
+            // Render ảnh trong tin nhắn (nếu có)
             if (message.getImage() != null && !message.getImage().isEmpty()) {
                 ImageView imageView = new ImageView(new Image(message.getImage()));
                 imageView.setFitWidth(200);
@@ -436,6 +423,7 @@ public class HomeController {
                 messageContent.getChildren().add(imageView);
             }
 
+            // Render nội dung văn bản
             if (message.getContent() != null && !message.getContent().isEmpty()) {
                 Label messageText = new Label(message.getContent());
                 messageText.getStyleClass().add("message-text");
@@ -449,30 +437,17 @@ public class HomeController {
 
             messageBox.getChildren().add(messageContent);
 
+            // --- PHẦN AVATAR BÊN PHẢI (Cho tin nhắn của mình) ---
             if (isMyMessage) {
-                ImageView avatar = new ImageView();
-                avatar.setFitWidth(40);
-                avatar.setFitHeight(40);
-                avatar.getStyleClass().add("message-avatar");
-
-                if (currentUser.getProfilePic() != null && !currentUser.getProfilePic().isEmpty()) {
-                    avatar.setImage(new Image(currentUser.getProfilePic()));
-                } else {
-                    // Use default - no image
-                    avatar.setImage(new Image(getClass().getResource("/account.png").toExternalForm()));
-                }
-
-                messageBox.getChildren().add(avatar);
+                messageBox.getChildren().add(createAvatarNode(currentUser.getProfilePic(), 40, 24));
             }
 
             messageContainer.getChildren().add(messageBox);
         }
 
-        // Scroll to bottom
-        Platform.runLater(() -> {
-            messageScrollPane.setVvalue(1.0);
-        });
+        Platform.runLater(() -> messageScrollPane.setVvalue(1.0));
     }
+
 
     private void sendMessage() {
         if (selectedUser == null || messageInput.getText().trim().isEmpty()) {
@@ -558,19 +533,8 @@ public class HomeController {
         profileContent.setMaxWidth(600);
 
         // Avatar
-        ImageView avatar = new ImageView();
-        avatar.setFitWidth(120);
-        avatar.setFitHeight(120);
-        avatar.getStyleClass().add("profile-avatar-large");
-        try {
-            if (user.getProfilePic() != null && !user.getProfilePic().isEmpty()) {
-                avatar.setImage(new Image(user.getProfilePic()));
-            } else {
-                avatar.setImage(new Image(getClass().getResource("/account.png").toExternalForm()));
-            }
-        } catch (Exception e) {
-            avatar.setImage(new Image(getClass().getResource("/account.png").toExternalForm()));
-        }
+        Node avatarNode = createAvatarNode(user.getProfilePic(), 150, 120);
+        avatarNode.getStyleClass().add("chat-header-avatar");
 
         // User name
         Label nameLabel = new Label(user.getFullName() != null ? user.getFullName() : "N/A");
@@ -599,7 +563,7 @@ public class HomeController {
 
         infoSection.getChildren().addAll(nameInfo, emailInfo, idInfo);
 
-        profileContent.getChildren().addAll(avatar, nameLabel, emailLabel, divider, infoSection);
+        profileContent.getChildren().addAll(avatarNode, nameLabel, emailLabel, divider, infoSection);
         profileContainer.getChildren().addAll(headerBox, profileContent);
 
         return profileContainer;
@@ -708,10 +672,18 @@ public class HomeController {
 
     private void applyTheme(String stylesheet) {
         if (scene != null) {
-            // Remove old stylesheets
+            // 1. Xóa stylesheet cũ
             scene.getStylesheets().clear();
-            // Add new stylesheet
-            scene.getStylesheets().add(getClass().getResource(stylesheet).toExternalForm());
+
+            // 2. Nạp stylesheet mới
+            String cssUrl = getClass().getResource(stylesheet).toExternalForm();
+            scene.getStylesheets().add(cssUrl);
+
+            // 3. LỆNH QUAN TRỌNG: Ép toàn bộ giao diện tính toán lại CSS ngay lập tức
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            System.out.println("Đã áp dụng theme: " + stylesheet);
         }
     }
 
@@ -735,37 +707,64 @@ public class HomeController {
         protected void updateItem(User user, boolean empty) {
             super.updateItem(user, empty);
 
+            // Nếu ô trống thì xóa sạch nội dung và style
             if (empty || user == null) {
                 setGraphic(null);
+                setText(null);
+                // Quan trọng: Đảm bảo không còn class CSS cũ để tránh lỗi hiển thị
+                getStyleClass().remove("filled-cell");
             } else {
+                // Thêm class để CSS nhận diện ô có dữ liệu
+                if (!getStyleClass().contains("filled-cell")) {
+                    getStyleClass().add("filled-cell");
+                }
+
                 HBox cell = new HBox(15);
                 cell.setPadding(new Insets(10));
                 cell.setAlignment(Pos.CENTER_LEFT);
 
-                ImageView avatar = new ImageView();
-                avatar.setFitWidth(48);
-                avatar.setFitHeight(48);
-                avatar.getStyleClass().add("user-avatar");
-                try {
-                    if (user.getProfilePic() != null && !user.getProfilePic().isEmpty()) {
-                        avatar.setImage(new Image(user.getProfilePic()));
-                    }
-                } catch (Exception e) {
-                    // Use default - no image
-                    avatar.setImage(null);
-                }
+                Node avatarNode = createAvatarNode(user.getProfilePic(), 40, 24);
 
-                VBox userInfo = new VBox(5);
+                VBox userInfo = new VBox(2); // Giảm khoảng cách giữa tên và trạng thái
                 Label userName = new Label(user.getFullName());
                 userName.getStyleClass().add("user-name");
+
+                // Ví dụ hiển thị trạng thái động (nếu có)
                 Label userStatus = new Label("Offline");
                 userStatus.getStyleClass().add("user-status");
                 userInfo.getChildren().addAll(userName, userStatus);
 
-                cell.getChildren().addAll(avatar, userInfo);
+                cell.getChildren().addAll(avatarNode, userInfo);
                 setGraphic(cell);
             }
         }
+    }
+
+    private Node createAvatarNode(String photoUrl, double avatarNodeSize, int iconSize){
+        if (photoUrl != null && !photoUrl.isEmpty()) {
+            try {
+                ImageView avatar = new ImageView(new Image(photoUrl, true));
+                avatar.setFitWidth(avatarNodeSize);
+                avatar.setFitHeight(avatarNodeSize);
+                avatar.getStyleClass().add("message-avatar");
+                return avatar;
+            } catch (Exception e) {
+                // Nếu load ảnh lỗi thì rơi xuống phần tạo icon mặc định bên dưới
+            }
+        }
+
+        // --- TẠO FONT ICON MẶC ĐỊNH ---
+        org.kordamp.ikonli.javafx.FontIcon defaultIcon = new org.kordamp.ikonli.javafx.FontIcon("mdi2a-account");
+        defaultIcon.setIconSize(iconSize);
+        defaultIcon.getStyleClass().add("avatar-icon"); // Để đổi màu trong CSS
+
+        // Cho icon vào một cái vòng tròn (StackPane) để trông chuyên nghiệp hơn
+        StackPane container = new StackPane(defaultIcon);
+        container.setPrefSize(avatarNodeSize, avatarNodeSize);
+        container.setMinSize(avatarNodeSize, avatarNodeSize);
+        container.getStyleClass().add("default-avatar-container");
+
+        return container;
     }
 }
 

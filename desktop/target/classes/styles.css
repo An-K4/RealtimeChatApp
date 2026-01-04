@@ -1,7 +1,16 @@
 /* Root and general styles */
 .root {
     -fx-font-family: 'Segoe UI', Arial, sans-serif;
-    -fx-base: #ffffff;
+    -bg-primary: #ffffff;
+    -text-main: #1a1a1a;
+    -text-secondary: #666666;
+    -accent-color: #667eea;
+    -icon-default: #1a1a1a;
+}
+
+/* Sửa lại class này để dùng biến */
+.ikonli-font-icon {
+    -fx-icon-color: -icon-default;
 }
 
 /* Login/Signup page styles */
@@ -192,8 +201,16 @@
     -fx-background-color: #f5f5f5;
 }
 
-.user-list .list-cell:hover {
-    -fx-background-color: #f5f5f5;
+/* Chỉ áp dụng hiệu ứng hover cho các ô CÓ dữ liệu */
+.user-list .list-cell:filled:hover {
+    -fx-background-color: #EEEEEE; /* Màu hover bạn muốn (ví dụ màu tối cho theme dark) */
+    -fx-cursor: hand;
+}
+
+/* Đảm bảo các ô TRỐNG luôn có nền trong suốt và không có hiệu ứng */
+.user-list .list-cell:empty {
+    -fx-background-color: transparent;
+    -fx-mouse-transparent: true; /* Chống click vào vùng trống */
 }
 
 .user-avatar {

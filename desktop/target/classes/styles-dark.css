@@ -2,8 +2,16 @@
 
 /* Root and general styles */
 .root {
-    -fx-font-family: 'Segoe UI', Arial, sans-serif;
-    -fx-base: #1a1a1a;
+    -bg-primary: #1e1e1e;
+    -text-main: #ffffff;   /* Chữ tự động trắng */
+    -text-secondary: #b0b0b0;
+    -accent-color: #a5b4fc;
+    -icon-default: #ffffff; /* ICON TỰ ĐỘNG TRẮNG */
+}
+
+/* Icon sẽ luôn ăn theo biến -icon-default */
+.ikonli-font-icon {
+    -fx-icon-color: -icon-default;
 }
 
 /* Login/Signup page styles */
@@ -121,7 +129,7 @@
 
 /* Navbar styles */
 .navbar {
-    -fx-background-color: #1e1e1e;
+    -fx-background-color: -bg-primary;
     -fx-border-color: #333333;
     -fx-border-width: 0 0 1 0;
 }
@@ -140,7 +148,7 @@
 .navbar-title {
     -fx-font-size: 18px;
     -fx-font-weight: bold;
-    -fx-text-fill: #ffffff;
+    -fx-text-fill: -text-main;
 }
 
 .nav-button {
@@ -196,8 +204,16 @@
     -fx-background-color: #2a2a2a;
 }
 
-.user-list .list-cell:hover {
-    -fx-background-color: #2a2a2a;
+/* Chỉ áp dụng hiệu ứng hover cho các ô CÓ dữ liệu */
+.user-list .list-cell:filled:hover {
+    -fx-background-color: #3d3d3d; /* Màu hover bạn muốn (ví dụ màu tối cho theme dark) */
+    -fx-cursor: hand;
+}
+
+/* Đảm bảo các ô TRỐNG luôn có nền trong suốt và không có hiệu ứng */
+.user-list .list-cell:empty {
+    -fx-background-color: transparent;
+    -fx-mouse-transparent: true; /* Chống click vào vùng trống */
 }
 
 .user-avatar {
