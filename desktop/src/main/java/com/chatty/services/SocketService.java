@@ -7,6 +7,7 @@ import io.socket.client.Ack;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import javafx.application.Platform;
+import org.json.JSONObject;
 
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -131,16 +132,20 @@ public class SocketService {
             return;
         }
 
-        JsonObject payload = new JsonObject();
-        payload.addProperty("receiverId", receiverId);
-        payload.addProperty("content", content);
+        // Dùng JSONObject của org.json
+        JSONObject payload = new JSONObject();
+        try {
+            payload.put("receiverId", receiverId);
+            payload.put("content", content);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         socket.emit("send-message", payload, (Ack) args -> {
+            // Xử lý callback như cũ
             if (args.length > 0) {
-                JsonObject res =
-                        gson.fromJson(args[0].toString(), JsonObject.class);
-                boolean success = res.has("success") && res.get("success").getAsBoolean();
-                System.out.println(success ? "Đã gửi tin nhắn" : "Gửi tin thất bại");
+                // Chỗ này vẫn có thể dùng Gson để parse phản hồi từ server nếu muốn
+                System.out.println("Server phản hồi: " + args[0].toString());
             }
         });
     }
