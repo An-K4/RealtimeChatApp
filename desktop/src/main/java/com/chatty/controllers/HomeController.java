@@ -8,6 +8,7 @@ import com.chatty.services.SocketService;
 import com.chatty.services.ThemeService;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -508,10 +509,10 @@ public class HomeController {
     }
 
     private VBox createProfileView(User user) {
-        VBox profileContainer = new VBox(20);
-        profileContainer.setPadding(new Insets(30));
-        profileContainer.getStyleClass().add("profile-container");
-        profileContainer.setAlignment(Pos.TOP_CENTER);
+        VBox parentContainer = new VBox(20);
+        parentContainer.setPadding(new Insets(15));
+        parentContainer.getStyleClass().add("profile-container");
+        parentContainer.setAlignment(Pos.TOP_CENTER);
 
         // Back button
         HBox headerBox = new HBox();
@@ -527,46 +528,121 @@ public class HomeController {
         });
         headerBox.getChildren().add(backBtn);
 
+        // Profile and change password content
+        HBox profileContainer = new HBox(50);
+        profileContainer.setMaxWidth(1000);
+        profileContainer.setMinWidth(600);
+
         // Profile content
         VBox profileContent = new VBox(20);
         profileContent.setAlignment(Pos.TOP_CENTER);
-        profileContent.setMaxWidth(600);
+        profileContent.setMinWidth(400);
 
         // Avatar
         Node avatarNode = createAvatarNode(user.getProfilePic(), 150, 120);
         avatarNode.getStyleClass().add("chat-header-avatar");
 
         // User name
-        Label nameLabel = new Label(user.getFullName() != null ? user.getFullName() : "N/A");
-        nameLabel.getStyleClass().add("profile-name");
+        Label usernameLabel = new Label(user.getUsername() != null ? user.getUsername() : "N/A");
+        usernameLabel.getStyleClass().add("profile-name");
+
+        // Full name
+        Label fullnameLabel = new Label(user.getFullName() != null ? user.getFullName() : "N/A");
+        fullnameLabel.getStyleClass().add("profile-name");
 
         // Email
         Label emailLabel = new Label(user.getEmail() != null ? user.getEmail() : "N/A");
         emailLabel.getStyleClass().add("profile-email");
 
-        // User ID
-        Label idLabel = new Label("ID: " + (user.get_id() != null ? user.get_id() : "N/A"));
-        idLabel.getStyleClass().add("profile-id");
-
-        // Divider
-        Separator divider = new Separator();
-        divider.setMaxWidth(400);
+        // Horizontal Divider
+        Separator horizontalDivider = new Separator();
+        horizontalDivider.setMaxWidth(200);
 
         // Info section
         VBox infoSection = new VBox(15);
-        infoSection.setAlignment(Pos.CENTER_LEFT);
+        infoSection.setAlignment(Pos.CENTER);
         infoSection.setPadding(new Insets(20, 0, 0, 0));
+        infoSection.setMaxWidth(Region.USE_PREF_SIZE);
 
-        HBox nameInfo = createInfoRow("Họ tên:", user.getFullName() != null ? user.getFullName() : "N/A");
+        HBox usernameInfo = createInfoRow("Tên đăng nhập:", user.getUsername() != null ? user.getUsername() : "N/A");
+        HBox fullnameInfo = createInfoRow("Họ tên:", user.getFullName() != null ? user.getFullName() : "N/A");
         HBox emailInfo = createInfoRow("Email:", user.getEmail() != null ? user.getEmail() : "N/A");
-        HBox idInfo = createInfoRow("User ID:", user.get_id() != null ? user.get_id() : "N/A");
 
-        infoSection.getChildren().addAll(nameInfo, emailInfo, idInfo);
+        Button changePhotoBtn = new Button("Đổi ảnh đại diện");
+        changePhotoBtn.getStyleClass().add("primary-button");
+        changePhotoBtn.setMaxWidth(Double.MAX_VALUE);
+        changePhotoBtn.setOnAction(e -> {
+            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+            fileChooser.setTitle("Chọn ảnh đại diện");
+            fileChooser.getExtensionFilters().add(
+                    new javafx.stage.FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
+            );
+            java.io.File selectedFile = fileChooser.showOpenDialog(primaryStage);
+            if (selectedFile != null) {
+                System.out.println("Đã chọn file: " + selectedFile.getAbsolutePath());
+                // Logic upload ảnh sẽ viết ở đây
+            }
+        });
 
-        profileContent.getChildren().addAll(avatarNode, nameLabel, emailLabel, divider, infoSection);
-        profileContainer.getChildren().addAll(headerBox, profileContent);
+        infoSection.getChildren().addAll(usernameInfo, fullnameInfo, emailInfo, changePhotoBtn);
 
-        return profileContainer;
+        profileContent.getChildren().addAll(avatarNode, fullnameLabel, emailLabel, horizontalDivider, infoSection);
+
+        // Vertical Divider
+        Separator verticalDivider = new Separator(Orientation.VERTICAL);
+        verticalDivider.setMaxHeight(500);
+
+        // Change password
+        VBox changePasswordContent = new VBox(20);
+        changePasswordContent.setAlignment(Pos.BOTTOM_LEFT);
+        changePasswordContent.setMinWidth(400);
+        changePasswordContent.setPadding(new Insets(0, 0, 0, 30));
+
+        Label changePassTitle = new Label("Đổi mật khẩu");
+        changePassTitle.getStyleClass().add("settings-section-title");
+
+        VBox passForm = new VBox(15);
+
+        // Hàm helper tạo input mật khẩu nhanh
+        VBox oldPassGroup = createPasswordInputGroup("Mật khẩu cũ", "Nhập mật khẩu hiện tại");
+        VBox newPassGroup = createPasswordInputGroup("Mật khẩu mới", "Nhập mật khẩu mới");
+        VBox confirmPassGroup = createPasswordInputGroup("Xác nhận mật khẩu mới", "Nhập lại mật khẩu mới");
+
+        Button updatePassBtn = new Button("Cập nhật mật khẩu");
+        updatePassBtn.getStyleClass().add("primary-button");
+        updatePassBtn.setPrefWidth(Double.MAX_VALUE);
+        updatePassBtn.setOnAction(e -> {
+            // Logic đổi mật khẩu sẽ viết ở đây
+            System.out.println("Đang thực hiện đổi mật khẩu...");
+        });
+
+        passForm.getChildren().addAll(oldPassGroup, newPassGroup, confirmPassGroup, updatePassBtn);
+        changePasswordContent.getChildren().addAll(changePassTitle, passForm);
+
+        // Thêm 2 cột vào HBox chính
+        profileContainer.getChildren().addAll(profileContent, verticalDivider, changePasswordContent);
+        parentContainer.getChildren().addAll(headerBox, profileContainer);
+
+        return parentContainer;
+    }
+
+    private VBox createPasswordInputGroup(String labelText, String prompt) {
+        VBox group = new VBox(5);
+        Label label = new Label(labelText);
+        label.getStyleClass().add("form-label");
+
+        HBox inputWrapper = new HBox();
+        inputWrapper.getStyleClass().add("input-container");
+        inputWrapper.setAlignment(Pos.CENTER_LEFT);
+        inputWrapper.setPrefHeight(45);
+
+        PasswordField passwordField = new PasswordField();
+        passwordField.setPromptText(prompt);
+        passwordField.getStyleClass().add("text-input");
+
+        inputWrapper.getChildren().add(passwordField);
+        group.getChildren().addAll(label, inputWrapper);
+        return group;
     }
 
     private HBox createInfoRow(String label, String value) {
