@@ -1,5 +1,8 @@
 package com.chatty.models;
 
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+
 public class User {
     private String _id;
     private String username;
@@ -7,6 +10,7 @@ public class User {
     private String email;
     private String profilePic;
     private String token;
+    private final BooleanProperty isOnline = new SimpleBooleanProperty(false);
 
     public User() {}
 
@@ -64,6 +68,18 @@ public class User {
 
     public void setProfilePic(String profilePic) {
         this.profilePic = profilePic;
+    }
+
+    public boolean isOnline() {
+        return isOnline.get();
+    }
+
+    public BooleanProperty isOnlineProperty() {
+        return isOnline;
+    }
+
+    public void setOnline(boolean online){
+        this.isOnline.set(online);
     }
 }
 

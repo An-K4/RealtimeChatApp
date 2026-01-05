@@ -150,11 +150,10 @@ public class LoginController {
                 return;
             }
 
-            usernameField.setDisable(true);
-            passwordField.setDisable(true);
             signupLink.setDisable(true);
             loginButton.setDisable(true);
             loginButton.setText("Loading...");
+            mainContainer.requestFocus();
             
             new Thread(() -> {
                 try {
@@ -165,8 +164,6 @@ public class LoginController {
                 } catch (Exception ex) {
                     Platform.runLater(() -> {
                         showAlert("Login Failed", ex.getMessage(), Alert.AlertType.ERROR);
-                        usernameField.setDisable(false);
-                        passwordField.setDisable(false);
                         signupLink.setDisable(false);
                         loginButton.setDisable(false);
                         loginButton.setText("Sign in");

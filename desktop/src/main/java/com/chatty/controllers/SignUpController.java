@@ -24,9 +24,6 @@ public class SignUpController {
 
     public void show(Stage primaryStage) {
         primaryStage.setTitle("Kma Chatty - Sign Up");
-        primaryStage.setMinWidth(800);
-        primaryStage.setMinHeight(600);
-        primaryStage.setResizable(false);
         primaryStage.centerOnScreen();
 
         // Main container
@@ -238,7 +235,7 @@ public class SignUpController {
             new LoginController().show(primaryStage);
         });
 
-        Scene scene = new Scene(mainContainer, 1200, 800);
+        Scene scene = new Scene(mainContainer, 1000, 700);
         scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
         primaryStage.setScene(scene);
         primaryStage.show();

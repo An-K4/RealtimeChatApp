@@ -16,6 +16,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -24,7 +25,9 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class HomeController {
     private final AuthService authService;
@@ -33,6 +36,7 @@ public class HomeController {
     private User selectedUser;
     private List<User> users;
     private List<Message> messages;
+    private Set<String> onlineUserIds = new HashSet<>();
     private VBox messageContainer;
     private ScrollPane messageScrollPane;
     private TextField messageInput;
@@ -41,6 +45,7 @@ public class HomeController {
     private BorderPane mainContainer;
     private HBox centerContent;
     private Scene scene;
+    private Label onlineCountLabel;
 
     public HomeController() {
         this.authService = new AuthService();
@@ -87,7 +92,6 @@ public class HomeController {
         authService.setCurrentUser(user);
         User currentUser = authService.getCurrentUser();
         if (currentUser != null) {
-            socketService.connect(currentUser.get_id());
             socketService.setOnNewMessage(message -> {
                 if (selectedUser != null && message.getSenderId().equals(selectedUser.get_id())) {
                     messages.add(message);
@@ -97,6 +101,8 @@ public class HomeController {
                     });
                 }
             });
+            setupOnlineStatusListeners();
+            socketService.connect(currentUser.get_id());
         }
 
         scene = new Scene(mainContainer, 1200, 700);
@@ -109,6 +115,71 @@ public class HomeController {
         primaryStage.show();
 
         Platform.runLater(mainContainer::requestFocus);
+    }
+
+    private void setupOnlineStatusListeners() {
+        // get full list first
+        socketService.setOnOnlineListReceived(onlineIds -> {
+            // debug
+            System.out.println("CLIENT: Đã nhận danh sách online từ Server: " + onlineIds);
+            System.out.println("CLIENT: Số lượng user hiện tại trong list: " + (userListView.getItems() != null ? userListView.getItems().size() : "null"));
+
+            Platform.runLater(() -> {
+                onlineUserIds.clear();
+                onlineUserIds.addAll(onlineIds);
+
+                if(userListView.getItems() != null){
+                    for(User u : userListView.getItems()){
+                        u.setOnline(onlineUserIds.contains(u.get_id()));
+                    }
+
+                    updateOnlineCountLabel();
+                }
+            });
+
+        });
+
+        // new user online
+        socketService.setOnUserOnline(userId -> {
+            Platform.runLater(() -> {
+                // update temp, avoid race condition bug
+                onlineUserIds.add(userId);
+
+                if(userListView.getItems() != null){
+                    userListView.getItems().stream()
+                            .filter(u -> u.get_id().equals(userId))
+                            .findFirst()
+                            .ifPresent(u -> {
+                                u.setOnline(true);
+                            });
+                    updateOnlineCountLabel();
+                }
+            });
+        });
+
+        // new user offline
+        socketService.setOnUserOffline(userId -> {
+            Platform.runLater(() -> {
+                onlineUserIds.remove(userId);
+
+                if (userListView.getItems() != null) {
+                    userListView.getItems().stream()
+                            .filter(u -> u.get_id().equals(userId))
+                            .findFirst()
+                            .ifPresent(u -> u.setOnline(false));
+                    updateOnlineCountLabel();
+                }
+            });
+        });
+    }
+
+    private void updateOnlineCountLabel() {
+        Platform.runLater(() -> {
+           if(userListView.getItems() == null || onlineCountLabel == null) return;
+
+           long count = userListView.getItems().stream().filter(User::isOnline).count();
+           onlineCountLabel.setText("(" + count + " online)");
+        });
     }
 
     private HBox createNavbar(Stage stage) {
@@ -187,11 +258,11 @@ public class HomeController {
         CheckBox onlineOnlyCheck = new CheckBox("Show online only");
         onlineOnlyCheck.getStyleClass().add("filter-checkbox");
 
-        Label onlineCount = new Label("(0 online)");
-        onlineCount.getStyleClass().add("online-count");
+        onlineCountLabel = new Label("(0 online)");
+        onlineCountLabel.getStyleClass().add("online-count");
 
         HBox filterContainer = new HBox(10);
-        filterContainer.getChildren().addAll(onlineOnlyCheck, onlineCount);
+        filterContainer.getChildren().addAll(onlineOnlyCheck, onlineCountLabel);
 
         sidebarHeader.getChildren().addAll(headerTitle, filterContainer);
 
@@ -286,8 +357,16 @@ public class HomeController {
             try {
                 users = chatService.getUsers();
                 Platform.runLater(() -> {
+                    for (User u : users){
+                        if(onlineUserIds.contains(u.get_id())){
+                            u.setOnline(true);
+                        }
+                    }
+
                     userListView.getItems().clear();
                     userListView.getItems().addAll(users);
+
+                    updateOnlineCountLabel();
                 });
             } catch (Exception e) {
                 e.printStackTrace();
@@ -748,14 +827,14 @@ public class HomeController {
 
     private void applyTheme(String stylesheet) {
         if (scene != null) {
-            // 1. Xóa stylesheet cũ
+            // Xóa stylesheet cũ
             scene.getStylesheets().clear();
 
-            // 2. Nạp stylesheet mới
+            // Nạp stylesheet mới
             String cssUrl = getClass().getResource(stylesheet).toExternalForm();
             scene.getStylesheets().add(cssUrl);
 
-            // 3. LỆNH QUAN TRỌNG: Ép toàn bộ giao diện tính toán lại CSS ngay lập tức
+            // Ép toàn bộ giao diện tính toán lại CSS
             scene.getRoot().applyCss();
             scene.getRoot().layout();
 
@@ -783,14 +862,13 @@ public class HomeController {
         protected void updateItem(User user, boolean empty) {
             super.updateItem(user, empty);
 
-            // Nếu ô trống thì xóa sạch nội dung và style
+            // Nếu ô trống thì xóa nội dung và style
             if (empty || user == null) {
                 setGraphic(null);
                 setText(null);
-                // Quan trọng: Đảm bảo không còn class CSS cũ để tránh lỗi hiển thị
                 getStyleClass().remove("filled-cell");
             } else {
-                // Thêm class để CSS nhận diện ô có dữ liệu
+                // Thêm class để css nhận diện ô có dữ liệu
                 if (!getStyleClass().contains("filled-cell")) {
                     getStyleClass().add("filled-cell");
                 }
@@ -801,14 +879,28 @@ public class HomeController {
 
                 Node avatarNode = createAvatarNode(user.getProfilePic(), 40, 24);
 
-                VBox userInfo = new VBox(2); // Giảm khoảng cách giữa tên và trạng thái
+                VBox userInfo = new VBox(2);
+                userInfo.setAlignment(Pos.CENTER_LEFT);
+
+                // Hiển thị tên và chấm online
+                HBox nameRow = new HBox(6);
+                nameRow.setAlignment(Pos.CENTER_LEFT);
+
                 Label userName = new Label(user.getFullName());
                 userName.getStyleClass().add("user-name");
 
-                // Ví dụ hiển thị trạng thái động (nếu có)
-                Label userStatus = new Label("Offline");
-                userStatus.getStyleClass().add("user-status");
-                userInfo.getChildren().addAll(userName, userStatus);
+                // Chấm xanh
+                Circle onlineDot = new Circle(4);
+                onlineDot.getStyleClass().add("online-dot");
+                onlineDot.visibleProperty().bind(user.isOnlineProperty());
+
+                nameRow.getChildren().addAll(userName, onlineDot);
+
+                Label lastMsgLabel = new Label("Nhấn để bắt đầu trò chuyện");
+                lastMsgLabel.getStyleClass().add("last-message-preview");
+                lastMsgLabel.setMaxWidth(180);
+
+                userInfo.getChildren().addAll(nameRow, lastMsgLabel);
 
                 cell.getChildren().addAll(avatarNode, userInfo);
                 setGraphic(cell);

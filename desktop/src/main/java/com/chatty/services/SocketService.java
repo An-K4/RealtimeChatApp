@@ -7,6 +7,7 @@ import io.socket.client.Ack;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import javafx.application.Platform;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.net.URISyntaxException;
@@ -24,7 +25,9 @@ public class SocketService {
 
     // chat callbacks
     private Consumer<Message> onNewMessage;
-    private Consumer<List<String>> onOnlineUsersUpdate;
+    private Consumer<List<String>> onOnlineListReceived;
+    private Consumer<String> onUserOnline;
+    private Consumer<String> onUserOffline;
 
     // video call callbacks (Gson JsonObject)
     private Consumer<JsonObject> onCallOffer;
@@ -55,17 +58,60 @@ public class SocketService {
             );
 
             // ===== online users =====
-            socket.on("getOnlineUsers", args -> {
+            socket.on("noti-onlineList-toMe", args -> {
                 List<String> users = new ArrayList<>();
-                if (args.length > 0 && args[0] instanceof List) {
-                    List<?> list = (List<?>) args[0];
-                    for (Object item : list) {
-                        users.add(item.toString());
+                if (args.length > 0) {
+                    if (args[0] instanceof JSONArray){
+                        JSONArray jsonArray = (JSONArray) args[0];
+
+                        try {
+                            for (int i = 0; i < jsonArray.length(); i++){
+                                users.add(jsonArray.getString(i));
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
+
+                // debug
+                System.out.println("DEBUG SOCKET: Đã parse được danh sách: " + users);
+
                 onlineUsers = users;
-                if (onOnlineUsersUpdate != null) {
-                    Platform.runLater(() -> onOnlineUsersUpdate.accept(users));
+                if (onOnlineListReceived != null) {
+                    Platform.runLater(() -> onOnlineListReceived.accept(users));
+                }
+            });
+
+            // new user online
+            socket.on("noti-online", args -> {
+               if(args.length > 0 && onUserOnline != null){
+                   try {
+                       // backend send object
+                       JSONObject data = (JSONObject) args[0];
+                       String id = data.optString("id");
+                       if(!id.isEmpty()){
+                           Platform.runLater(() -> onUserOnline.accept(id));
+                       }
+                   } catch (Exception e){
+                       e.printStackTrace();
+                   }
+               }
+            });
+
+            // new user offline
+            socket.on("noti-offline", args -> {
+                if (args.length > 0 && onUserOffline != null){
+                    try {
+                        // backend send object
+                        JSONObject data = (JSONObject) args[0];
+                        String id = data.optString("id");
+                        if(!id.isEmpty()){
+                            Platform.runLater(() -> onUserOffline.accept(id));
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             });
 
@@ -188,8 +234,16 @@ public class SocketService {
         this.onNewMessage = callback;
     }
 
-    public void setOnOnlineUsersUpdate(Consumer<List<String>> callback) {
-        this.onOnlineUsersUpdate = callback;
+    public void setOnOnlineListReceived(Consumer<List<String>> callback) {
+        this.onOnlineListReceived = callback;
+    }
+
+    public void setOnUserOnline(Consumer<String> onUserOnline) {
+        this.onUserOnline = onUserOnline;
+    }
+
+    public void setOnUserOffline(Consumer<String> onUserOffline) {
+        this.onUserOffline = onUserOffline;
     }
 
     public void setOnCallOffer(Consumer<JsonObject> callback) {
