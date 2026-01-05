@@ -199,6 +199,17 @@
     -fx-font-size: 11px;
 }
 
+.unread-badge {
+    -fx-background-color: #ff3b30; /* Màu đỏ */
+    -fx-text-fill: white;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 6 2 6;
+    -fx-background-radius: 10;
+    -fx-min-width: 18px;
+    -fx-alignment: center;
+}
+
 .user-list {
     -fx-background-color: transparent;
 }
@@ -367,6 +378,12 @@
     -fx-max-width: 400;
 }
 
+.message-status {
+    -fx-font-size: 11px;
+    -fx-text-fill: #888888;
+    -fx-padding: 0 5 0 0;
+}
+
 .message-box-right .message-text {
     -fx-background-color: #667eea;
     -fx-text-fill: #ffffff;
@@ -380,7 +397,6 @@
 .message-time {
     -fx-font-size: 11px;
     -fx-text-fill: #999999;
-    -fx-padding: 2 5;
 }
 
 .message-input-container {

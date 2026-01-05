@@ -1,5 +1,8 @@
 package com.chatty.models;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Message {
     private String _id;
     private String senderId;
@@ -7,6 +10,7 @@ public class Message {
     private String content;
     private String image;
     private String createdAt;
+    private List<String> seenBy = new ArrayList<>();
 
     public Message() {
     }
@@ -57,6 +61,18 @@ public class Message {
 
     public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public List<String> getSeenBy() {
+        return seenBy;
+    }
+
+    public void setSeenBy(List<String> seenBy) {
+        this.seenBy = seenBy;
+    }
+
+    public boolean isSeenBy(String userId){
+        return seenBy != null && seenBy.contains(userId);
     }
 }
 

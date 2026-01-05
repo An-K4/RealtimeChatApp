@@ -29,6 +29,11 @@ public class SocketService {
     private Consumer<String> onUserOnline;
     private Consumer<String> onUserOffline;
 
+    // typing callbacks
+    private Consumer<String> onTypingStart;
+    private Consumer<String> onTypingStop;
+    private Consumer<JsonObject> onMessageSeen;
+
     // video call callbacks (Gson JsonObject)
     private Consumer<JsonObject> onCallOffer;
     private Consumer<JsonObject> onCallAnswer;
@@ -115,6 +120,36 @@ public class SocketService {
                 }
             });
 
+            // typing start
+            socket.on("typing-start", args -> {
+               if (args.length > 0 && onTypingStart != null){
+                   JSONObject data = (JSONObject) args[0];
+                   String senderId = data.optString("senderId");
+                   Platform.runLater(() -> onTypingStart.accept(senderId));
+               }
+            });
+
+            // typing stop
+            socket.on("typing-stop", args -> {
+               if (args.length > 0 && onTypingStop != null){
+                   JSONObject data = (JSONObject) args[0];
+                   String senderId = data.optString("senderId");
+                   Platform.runLater(() -> onTypingStop.accept(senderId));
+               }
+            });
+
+            // seen event
+            socket.on("send-message", args -> {
+               if (args.length > 0 && onMessageSeen != null){
+                   try {
+                       JsonObject data = gson.fromJson(args[0].toString(), JsonObject.class);
+                       Platform.runLater(() -> onMessageSeen.accept(data));
+                   } catch (Exception e) {
+                       e.printStackTrace();
+                   }
+               }
+            });
+
             // ===== receive message =====
             socket.on("receive-message", args -> {
                 if (args.length > 0 && onNewMessage != null) {
@@ -124,6 +159,17 @@ public class SocketService {
 
                         Platform.runLater(() -> onNewMessage.accept(message));
                     } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+            socket.on("seen-message", args -> {
+                if (args.length > 0 && onMessageSeen != null){
+                    try {
+                        JsonObject data = gson.fromJson(args[0].toString(), JsonObject.class);
+                        Platform.runLater(() -> onMessageSeen.accept(data));
+                    } catch (Exception e){
                         e.printStackTrace();
                     }
                 }
@@ -167,6 +213,44 @@ public class SocketService {
             socket.off();
             socket.disconnect();
             socket = null;
+            System.out.println("Socket disconnected");
+        }
+    }
+
+    // typing status, seen status
+    public void emitStartTyping(String receiverId){
+        if (socket != null){
+            JSONObject obj = new JSONObject();
+            try {
+                obj.put("receiverId", receiverId);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+            socket.emit("typing-start", obj);
+        }
+    }
+
+    public void emitStopTyping(String receiverId){
+        if (socket != null){
+            JSONObject obj = new JSONObject();
+            try {
+                obj.put("receiverId", receiverId);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+            socket.emit("typing-stop", obj);
+        }
+    }
+
+    public void emitSeenMessage(String senderId){
+        if (socket != null){
+            JSONObject obj = new JSONObject();
+            try {
+                obj.put("senderId", senderId);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+            socket.emit("seen-message", obj);
         }
     }
 
@@ -244,6 +328,18 @@ public class SocketService {
 
     public void setOnUserOffline(Consumer<String> onUserOffline) {
         this.onUserOffline = onUserOffline;
+    }
+
+    public void setOnTypingStart(Consumer<String> onTypingStart) {
+        this.onTypingStart = onTypingStart;
+    }
+
+    public void setOnTypingStop(Consumer<String> onTypingStop) {
+        this.onTypingStop = onTypingStop;
+    }
+
+    public void setOnMessageSeen(Consumer<JsonObject> onMessageSeen) {
+        this.onMessageSeen = onMessageSeen;
     }
 
     public void setOnCallOffer(Consumer<JsonObject> callback) {

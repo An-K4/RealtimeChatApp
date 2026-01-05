@@ -889,12 +889,13 @@ socket.on('typing-stop', (data) => {
 socket.on('seen-message', (data) => {
   const viewerId = data?.viewerId; // Người xem tin nhắn (người bên kia)
   const seenAt = data?.seenAt;
-  
+  console.log("WEB CLIENT: Nhận được sự kiện seen-message từ Server!", data);
   if (!viewerId || !chatService.selectedUserId) return;
 
   // Nếu người xem là người đang chat với mình, mark messages as seen
   if (viewerId.toString() === chatService.selectedUserId.toString()) {
     // Clear previous delivered statuses
+    console.log("WEB CLIENT: Đúng người đang chat, cập nhật UI..."); // Log thêm
     clearDeliveredStatuses();
 
     // Mark all sent messages to this user as seen

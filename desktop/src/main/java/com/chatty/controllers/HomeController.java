@@ -24,10 +24,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class HomeController {
     private final AuthService authService;
@@ -37,6 +34,9 @@ public class HomeController {
     private List<User> users;
     private List<Message> messages;
     private Set<String> onlineUserIds = new HashSet<>();
+    private Timer typingTimer; // typing stop timer
+
+    // components
     private VBox messageContainer;
     private ScrollPane messageScrollPane;
     private TextField messageInput;
@@ -92,16 +92,7 @@ public class HomeController {
         authService.setCurrentUser(user);
         User currentUser = authService.getCurrentUser();
         if (currentUser != null) {
-            socketService.setOnNewMessage(message -> {
-                if (selectedUser != null && message.getSenderId().equals(selectedUser.get_id())) {
-                    messages.add(message);
-                    Platform.runLater(() -> {
-                        renderMessages();
-                        messageScrollPane.setVvalue(1.0);
-                    });
-                }
-            });
-            setupOnlineStatusListeners();
+            setupSocketListeners();
             socketService.connect(currentUser.get_id());
         }
 
@@ -117,7 +108,7 @@ public class HomeController {
         Platform.runLater(mainContainer::requestFocus);
     }
 
-    private void setupOnlineStatusListeners() {
+    private void setupSocketListeners() {
         // get full list first
         socketService.setOnOnlineListReceived(onlineIds -> {
             // debug
@@ -171,6 +162,94 @@ public class HomeController {
                 }
             });
         });
+
+        // typing
+        socketService.setOnTypingStart(senderId -> {
+            updateUserTypingStatus(senderId, true);
+        });
+
+        socketService.setOnTypingStop(senderId -> {
+            updateUserTypingStatus(senderId, false);
+        });
+
+        // new message
+        socketService.setOnNewMessage(message -> {
+            if (selectedUser != null && message.getSenderId().equals(selectedUser.get_id())) {
+                messages.add(message);
+                Platform.runLater(() -> {
+                    renderMessages();
+                    socketService.emitSeenMessage(selectedUser.get_id());
+                });
+            } else {
+                // update unread count
+                Platform.runLater(() -> {
+                    String senderId = message.getSenderId();
+
+                    // find user to increase unread count
+                    userListView.getItems().stream()
+                            .filter(u -> u.get_id().equals(senderId))
+                            .findFirst()
+                            .ifPresent(u -> {
+                                u.setUnreadCount(u.getUnreadCount() + 1);
+                                userListView.refresh();
+                            });
+                });
+            }
+
+            updateSidebarLastMessage(message);
+        });
+
+        // message seen
+        socketService.setOnMessageSeen(data -> {
+            Platform.runLater(() -> {
+                // check if are chatting with
+                String viewerId = data.get("viewerId").getAsString();
+
+                if (selectedUser != null && selectedUser.get_id().equals(viewerId)){
+                    // find lastMessage label to change seen status
+                    Label statusLabel = (Label) scene.lookup("#lastMessageStatus");
+                    if(statusLabel != null){
+                        statusLabel.setText("Đã xem");
+                    }
+                }
+            });
+        });
+    }
+
+    private void updateSidebarLastMessage(Message message) {
+        Platform.runLater(() -> {
+            String otherUserId = message.getSenderId().equals(authService.getCurrentUser().get_id())
+                    ? message.getReceiverId()
+                    : message.getSenderId();
+
+            userListView.getItems().stream()
+                    .filter(u -> u.get_id().equals(otherUserId))
+                    .findFirst()
+                    .ifPresent(user -> {
+                        // create new LastMessage obj
+                        User.LastMessage lastMsg = new User.LastMessage();
+                        lastMsg.setContent(message.getContent());
+                        lastMsg.setCreatedAt(message.getCreatedAt());
+
+                        boolean isMine = message.getSenderId().equals(authService.getCurrentUser().get_id());
+                        lastMsg.setIsMine(isMine);
+
+                        user.setLastMessage(lastMsg);
+
+                        // pop this user to the top
+                        userListView.getItems().remove(user);
+                        userListView.getItems().add(0, user);
+                        userListView.getSelectionModel().select(selectedUser);
+                    });
+        });
+    }
+
+    private void updateUserTypingStatus(String senderId, boolean isTyping) {
+        if (userListView.getItems() == null) return;
+        userListView.getItems().stream()
+                .filter(u -> u.get_id().equals(senderId))
+                .findFirst()
+                .ifPresent(u -> u.setTyping(isTyping)); // model auto update text
     }
 
     private void updateOnlineCountLabel() {
@@ -300,11 +379,13 @@ public class HomeController {
         messageScrollPane = new ScrollPane();
         messageScrollPane.setFitToWidth(true);
         messageScrollPane.getStyleClass().add("message-scroll-pane");
-        messageScrollPane.setVvalue(1.0);
 
         messageContainer = new VBox(15);
         messageContainer.setPadding(new Insets(20));
         messageScrollPane.setContent(messageContainer);
+        messageContainer.heightProperty().addListener((obs, oldVal, newVal) -> {
+            messageScrollPane.setVvalue(1.0);
+        });
 
         // No chat selected view
         VBox noChatView = new VBox(20);
@@ -337,6 +418,26 @@ public class HomeController {
         sendButton.setGraphic(sendIcon);
         sendButton.getStyleClass().add("send-button");
 
+        messageInput.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (selectedUser == null) return;
+
+            // is typing (no type before)
+            if (!newVal.isEmpty()){
+                socketService.emitStartTyping(selectedUser.get_id());
+
+                // reset old timer
+                if (typingTimer != null) typingTimer.cancel();
+
+                // new timer after 2s no type
+                typingTimer = new Timer();
+                typingTimer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        socketService.emitStopTyping(selectedUser.get_id());
+                    }
+                }, 2000);
+            }
+        });
         messageInput.setOnAction(e -> sendMessage());
         sendButton.setOnAction(e -> sendMessage());
 
@@ -358,9 +459,10 @@ public class HomeController {
                 users = chatService.getUsers();
                 Platform.runLater(() -> {
                     for (User u : users){
-                        if(onlineUserIds.contains(u.get_id())){
+                        if(onlineUserIds.contains(u.get_id())) {
                             u.setOnline(true);
                         }
+                        u.updateStatusPreview();
                     }
 
                     userListView.getItems().clear();
@@ -379,6 +481,11 @@ public class HomeController {
 
     private void selectUser(User user) {
         this.selectedUser = user;
+
+        // reset unread message
+        user.setUnreadCount(0);
+        userListView.refresh();
+        socketService.emitSeenMessage(user.get_id());
 
         // Update UI
         Platform.runLater(() -> {
@@ -463,9 +570,7 @@ public class HomeController {
             try {
                 messages = chatService.getMessages(selectedUser.get_id());
 
-                Platform.runLater(() -> {
-                    renderMessages();
-                });
+                Platform.runLater(this::renderMessages);
             } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() -> {
@@ -479,20 +584,16 @@ public class HomeController {
         messageContainer.getChildren().clear();
         User currentUser = authService.getCurrentUser();
 
-        for (Message message : messages) {
+        for (int i = 0; i < messages.size(); i++) {
+            Message message = messages.get(i);
             boolean isMyMessage = message.getSenderId().equals(currentUser.get_id());
 
             HBox messageBox = new HBox(10);
             messageBox.getStyleClass().add(isMyMessage ? "message-box-right" : "message-box-left");
 
-            // --- PHẦN AVATAR BÊN TRÁI (Cho tin nhắn của đối phương) ---
-            if (!isMyMessage) {
-                // Lấy ảnh của selectedUser (người đang chat cùng)
-                messageBox.getChildren().add(createAvatarNode(selectedUser.getProfilePic(), 40, 24));
-            }
-
             VBox messageContent = new VBox(5);
             messageContent.setMaxWidth(400); // Giới hạn độ rộng tin nhắn
+            messageContent.setFillWidth(false);
 
             // Render ảnh trong tin nhắn (nếu có)
             if (message.getImage() != null && !message.getImage().isEmpty()) {
@@ -513,19 +614,38 @@ public class HomeController {
 
             Label timeLabel = new Label(formatTime(message.getCreatedAt()));
             timeLabel.getStyleClass().add("message-time");
-            messageContent.getChildren().add(timeLabel);
+            HBox statusContainer = new HBox(2);
+            statusContainer.getChildren().add(timeLabel);
+            messageContent.getChildren().add(statusContainer);
 
-            messageBox.getChildren().add(messageContent);
-
-            // --- PHẦN AVATAR BÊN PHẢI (Cho tin nhắn của mình) ---
             if (isMyMessage) {
-                messageBox.getChildren().add(createAvatarNode(currentUser.getProfilePic(), 40, 24));
+                VBox myMessageContainer = new VBox(2);
+                myMessageContainer.getChildren().add(messageContent);
+                statusContainer.setAlignment(Pos.BOTTOM_RIGHT);
+                messageContent.setAlignment(Pos.BOTTOM_RIGHT);
+
+                Node myAvatar = createAvatarNode(currentUser.getProfilePic(), 40, 24);
+
+                if (messages.indexOf(message) == messages.size() - 1){
+                    Label statusLabel = new Label("Đã gửi");
+                    statusLabel.getStyleClass().add("message-status");
+                    statusLabel.setId("lastMessageStatus");
+
+                    if (selectedUser != null && message.isSeenBy(selectedUser.get_id())){
+                        statusLabel.setText("Đã xem");
+                    }
+
+                    statusContainer.getChildren().add(statusLabel);
+                }
+
+                messageBox.getChildren().addAll(myMessageContainer, myAvatar);
+            } else {
+                Node receiverAvatar = createAvatarNode(selectedUser.getProfilePic(), 40, 24);
+                messageBox.getChildren().addAll(receiverAvatar, messageContent);
             }
 
             messageContainer.getChildren().add(messageBox);
         }
-
-        Platform.runLater(() -> messageScrollPane.setVvalue(1.0));
     }
 
 
@@ -543,9 +663,7 @@ public class HomeController {
             try {
                 Message sentMessage = chatService.sendMessage(senderId, receiverId, content);
                 messages.add(sentMessage);
-                Platform.runLater(() -> {
-                    renderMessages();
-                });
+                Platform.runLater(this::renderMessages);
             } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() -> {
@@ -896,13 +1014,34 @@ public class HomeController {
 
                 nameRow.getChildren().addAll(userName, onlineDot);
 
-                Label lastMsgLabel = new Label("Nhấn để bắt đầu trò chuyện");
-                lastMsgLabel.getStyleClass().add("last-message-preview");
-                lastMsgLabel.setMaxWidth(180);
+                Label statusLabel = new Label();
+                statusLabel.getStyleClass().add("last-message-preview");
+                statusLabel.setMaxWidth(180);
 
-                userInfo.getChildren().addAll(nameRow, lastMsgLabel);
+                // update text when User.statusPreview change
+                statusLabel.textProperty().bind(user.statusPreviewProperty());
 
-                cell.getChildren().addAll(avatarNode, userInfo);
+                // data binding style
+                user.isTypingProperty().addListener((obs, wasTyping, isTyping) -> {
+                    if (isTyping){
+                        statusLabel.setStyle("-fx-text-fill: #31a24c; -fx-font-style: italic;");
+                    } else {
+                        statusLabel.setStyle("");
+                    }
+                });
+
+                // unread messages
+                if (user.getUnreadCount() > 0){
+                    Label badge = new Label(String.valueOf(user.getUnreadCount()));
+                    badge.getStyleClass().add("unread-badge");
+
+                    HBox.setHgrow(userInfo, Priority.ALWAYS);
+                    cell.getChildren().addAll(avatarNode, userInfo, badge);
+                } else {
+                    cell.getChildren().addAll(avatarNode, userInfo);
+                }
+
+                userInfo.getChildren().addAll(nameRow, statusLabel);
                 setGraphic(cell);
             }
         }
