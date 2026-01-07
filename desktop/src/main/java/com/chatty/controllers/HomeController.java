@@ -52,7 +52,8 @@ public class HomeController {
     private Label onlineCountLabel;
     private CheckBox onlineOnlyCheck;
     private TextField searchField;
-    Label searchStatusLabel;
+    private Label searchStatusLabel;
+    private Label userStatus;
 
     public HomeController() {
         this.authService = new AuthService();
@@ -146,6 +147,10 @@ public class HomeController {
                 // update temp, avoid race condition bug
                 onlineUserIds.add(userId);
 
+                if(selectedUser != null && userStatus != null){
+                    if (selectedUser.get_id().equals(userId)) userStatus.setText("Online");
+                }
+
                 if (allUsers != null) {
                     allUsers.stream()
                             .filter(u -> u.get_id().equals(userId))
@@ -163,6 +168,10 @@ public class HomeController {
         socketService.setOnUserOffline(userId -> {
             Platform.runLater(() -> {
                 onlineUserIds.remove(userId);
+
+                if(selectedUser != null && userStatus != null){
+                    if (selectedUser.get_id().equals(userId)) userStatus.setText("Offline");
+                }
 
                 if (userListView.getItems() != null) {
                     userListView.getItems().stream()
@@ -568,7 +577,6 @@ public class HomeController {
 
             if (!currentSearchTerm.isEmpty() && !latestSearchResults.isEmpty()) {
                 usersToFilter = new ArrayList<>(latestSearchResults);
-                System.out.println("latest" + latestSearchResults);
             } else if (currentSearchTerm.isEmpty()) {
                 usersToFilter = new ArrayList<>(this.allUsers);
             } else {
@@ -586,28 +594,21 @@ public class HomeController {
             }
 
             List<User> finalUsersToDisplay = new ArrayList<>(usersToFilter);
-            System.out.println(finalUsersToDisplay + "before check");
-            System.out.println(usersToFilter + "usertofilter");
-            System.out.println(latestSearchResults + "latest");
             if (onlineOnlyCheck != null && onlineOnlyCheck.isSelected()) {
                 finalUsersToDisplay = finalUsersToDisplay.stream()
                         .filter(User::isOnline)
                         .toList();
-                System.out.println("final only check" + finalUsersToDisplay);
             }
 
             currentDisplayedUsers.clear();
             currentDisplayedUsers.addAll(finalUsersToDisplay);
             userListView.getItems().setAll(currentDisplayedUsers);
-            System.out.println("final" + finalUsersToDisplay);
-            System.out.println("current" + currentDisplayedUsers);
-            System.out.println();
 
             if (finalUsersToDisplay.isEmpty() && !currentSearchTerm.isEmpty()) {
                 searchStatusLabel.setText("Không tìm thấy người dùng phù hợp");
                 searchStatusLabel.setVisible(true);
             } else if (finalUsersToDisplay.isEmpty() && currentSearchTerm.isEmpty() && onlineOnlyCheck.isSelected()) {
-                searchStatusLabel.setText("Không người dùng online nào khớp");
+                searchStatusLabel.setText("Không người có người dùng nào online");
                 searchStatusLabel.setVisible(true);
             } else {
                 searchStatusLabel.setVisible(false);
@@ -638,7 +639,7 @@ public class HomeController {
             VBox userInfo = new VBox(5);
             Label userName = new Label(user.getFullName());
             userName.getStyleClass().add("chat-header-name");
-            Label userStatus = new Label("Online");
+            userStatus = new Label(selectedUser.isOnline() ? "Online" : "Offline");
             userStatus.getStyleClass().add("chat-header-status");
             userInfo.getChildren().addAll(userName, userStatus);
 
