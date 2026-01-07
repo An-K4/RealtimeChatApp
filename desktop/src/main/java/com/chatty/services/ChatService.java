@@ -42,6 +42,25 @@ public class ChatService {
         }
     }
 
+    public List<User> searchUser(String searchTerm) throws IOException {
+        try {
+            String endpoint = "/users/search?username=" + searchTerm;
+            JsonObject response = apiService.get(endpoint, JsonObject.class);
+
+            if (response != null && response.has("users")){
+                JsonArray userArray = response.getAsJsonArray("users");
+                Gson gson = new Gson();
+                Type listType = new TypeToken<List<User>>(){}.getType();
+                return gson.fromJson(userArray, listType);
+            }
+
+            return new ArrayList<>();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
     public List<Message> getMessages(String friendId) throws IOException {
         try {
             JsonObject response = apiService.get("/messages/" + friendId, JsonObject.class, null);

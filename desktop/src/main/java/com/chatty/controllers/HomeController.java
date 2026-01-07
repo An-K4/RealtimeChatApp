@@ -25,16 +25,20 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class HomeController {
     private final AuthService authService;
     private final ChatService chatService;
     private final SocketService socketService;
     private User selectedUser;
-    private List<User> users;
+    private List<User> allUsers;
+    private List<User> currentDisplayedUsers;
+    private List<User> latestSearchResults;
     private List<Message> messages;
     private Set<String> onlineUserIds = new HashSet<>();
     private Timer typingTimer; // typing stop timer
+    private Timer searchDebounceTimer;
 
     // components
     private VBox messageContainer;
@@ -46,18 +50,24 @@ public class HomeController {
     private HBox centerContent;
     private Scene scene;
     private Label onlineCountLabel;
+    private CheckBox onlineOnlyCheck;
+    private TextField searchField;
+    Label searchStatusLabel;
 
     public HomeController() {
         this.authService = new AuthService();
         this.socketService = new SocketService();
         this.chatService = new ChatService(socketService);
         this.messages = new ArrayList<>();
+        this.allUsers = new ArrayList<>();
+        this.currentDisplayedUsers = new ArrayList<>();
+        this.latestSearchResults = new ArrayList<>();
     }
 
     public void show(Stage primaryStage, User user) {
         this.primaryStage = primaryStage;
         primaryStage.setTitle("Kma Chatty");
-        primaryStage.setMinWidth(1000);
+        primaryStage.setMinWidth(800);
         primaryStage.setMinHeight(600);
         primaryStage.setResizable(true);
         primaryStage.centerOnScreen();
@@ -119,11 +129,11 @@ public class HomeController {
                 onlineUserIds.clear();
                 onlineUserIds.addAll(onlineIds);
 
-                if(userListView.getItems() != null){
-                    for(User u : userListView.getItems()){
+                if (allUsers != null) {
+                    for (User u : allUsers) {
                         u.setOnline(onlineUserIds.contains(u.get_id()));
                     }
-
+                    updateListViewBasedOnFilterAndSearch();
                     updateOnlineCountLabel();
                 }
             });
@@ -136,13 +146,14 @@ public class HomeController {
                 // update temp, avoid race condition bug
                 onlineUserIds.add(userId);
 
-                if(userListView.getItems() != null){
-                    userListView.getItems().stream()
+                if (allUsers != null) {
+                    allUsers.stream()
                             .filter(u -> u.get_id().equals(userId))
                             .findFirst()
                             .ifPresent(u -> {
                                 u.setOnline(true);
                             });
+                    updateListViewBasedOnFilterAndSearch();
                     updateOnlineCountLabel();
                 }
             });
@@ -158,6 +169,7 @@ public class HomeController {
                             .filter(u -> u.get_id().equals(userId))
                             .findFirst()
                             .ifPresent(u -> u.setOnline(false));
+                    updateListViewBasedOnFilterAndSearch();
                     updateOnlineCountLabel();
                 }
             });
@@ -186,7 +198,7 @@ public class HomeController {
                     String senderId = message.getSenderId();
 
                     // find user to increase unread count
-                    userListView.getItems().stream()
+                    this.allUsers.stream()
                             .filter(u -> u.get_id().equals(senderId))
                             .findFirst()
                             .ifPresent(u -> {
@@ -205,10 +217,10 @@ public class HomeController {
                 // check if are chatting with
                 String viewerId = data.get("viewerId").getAsString();
 
-                if (selectedUser != null && selectedUser.get_id().equals(viewerId)){
+                if (selectedUser != null && selectedUser.get_id().equals(viewerId)) {
                     // find lastMessage label to change seen status
                     Label statusLabel = (Label) scene.lookup("#lastMessageStatus");
-                    if(statusLabel != null){
+                    if (statusLabel != null) {
                         statusLabel.setText("Đã xem");
                     }
                 }
@@ -222,7 +234,7 @@ public class HomeController {
                     ? message.getReceiverId()
                     : message.getSenderId();
 
-            userListView.getItems().stream()
+            this.allUsers.stream()
                     .filter(u -> u.get_id().equals(otherUserId))
                     .findFirst()
                     .ifPresent(user -> {
@@ -237,16 +249,19 @@ public class HomeController {
                         user.setLastMessage(lastMsg);
 
                         // pop this user to the top
-                        userListView.getItems().remove(user);
-                        userListView.getItems().add(0, user);
-                        userListView.getSelectionModel().select(selectedUser);
+                        this.allUsers.remove(user);
+                        this.allUsers.add(0, user);
+                        updateListViewBasedOnFilterAndSearch();
+                        if (selectedUser != null && userListView.getSelectionModel().getSelectedItems() != null) {
+                            userListView.getSelectionModel().select(selectedUser);
+                        }
                     });
         });
     }
 
     private void updateUserTypingStatus(String senderId, boolean isTyping) {
-        if (userListView.getItems() == null) return;
-        userListView.getItems().stream()
+        if (allUsers == null) return;
+        allUsers.stream()
                 .filter(u -> u.get_id().equals(senderId))
                 .findFirst()
                 .ifPresent(u -> u.setTyping(isTyping)); // model auto update text
@@ -254,10 +269,10 @@ public class HomeController {
 
     private void updateOnlineCountLabel() {
         Platform.runLater(() -> {
-           if(userListView.getItems() == null || onlineCountLabel == null) return;
+            if (allUsers == null || onlineCountLabel == null) return;
 
-           long count = userListView.getItems().stream().filter(User::isOnline).count();
-           onlineCountLabel.setText("(" + count + " online)");
+            long count = userListView.getItems().stream().filter(User::isOnline).count();
+            onlineCountLabel.setText("(" + count + " online)");
         });
     }
 
@@ -325,17 +340,51 @@ public class HomeController {
         sidebarHeader.setPadding(new Insets(20));
         sidebarHeader.getStyleClass().add("sidebar-header");
 
-        HBox headerTitle = new HBox(10);
-        headerTitle.setAlignment(Pos.CENTER_LEFT);
-        FontIcon usersIcon = new FontIcon("mdi2a-account-group");
-        usersIcon.setIconSize(24);
-        Label contactsLabel = new Label("Contacts");
-        contactsLabel.getStyleClass().add("sidebar-title");
-        headerTitle.getChildren().addAll(usersIcon, contactsLabel);
+        HBox searchBox = new HBox(10);
+        searchBox.setAlignment(Pos.CENTER_LEFT);
+        searchBox.getStyleClass().add("input-search");
+        FontIcon searchIcon = new FontIcon("mdi2m-magnify");
+        searchIcon.setIconSize(24);
+        searchField = new TextField();
+        searchField.setPromptText("Click to search user");
+        searchField.getStyleClass().add("sidebar-title");
+        HBox.setHgrow(searchField, Priority.ALWAYS);
+        searchBox.getChildren().addAll(searchIcon, searchField);
+        searchStatusLabel = new Label("Đang tìm kiếm...");
+        searchStatusLabel.getStyleClass().add("search-status-label");
+        searchStatusLabel.setAlignment(Pos.CENTER);
+        searchStatusLabel.setMaxWidth(Double.MAX_VALUE);
+        searchStatusLabel.setVisible(false);
+
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (searchDebounceTimer != null) {
+                searchDebounceTimer.cancel();
+            }
+
+            searchDebounceTimer = new Timer();
+            searchDebounceTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    Platform.runLater(() -> {
+                        String searchTerm = searchField.getText().trim();
+                        if (searchTerm.isEmpty()) {
+                            latestSearchResults.clear();
+                            updateListViewBasedOnFilterAndSearch();
+                            searchStatusLabel.setVisible(false);
+                        } else {
+                            performSearch(searchTerm);
+                        }
+                    });
+                }
+            }, 500);
+        });
 
         // Filter checkbox
-        CheckBox onlineOnlyCheck = new CheckBox("Show online only");
+        onlineOnlyCheck = new CheckBox("Show online only");
         onlineOnlyCheck.getStyleClass().add("filter-checkbox");
+        onlineOnlyCheck.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            updateListViewBasedOnFilterAndSearch();
+        });
 
         onlineCountLabel = new Label("(0 online)");
         onlineCountLabel.getStyleClass().add("online-count");
@@ -343,7 +392,7 @@ public class HomeController {
         HBox filterContainer = new HBox(10);
         filterContainer.getChildren().addAll(onlineOnlyCheck, onlineCountLabel);
 
-        sidebarHeader.getChildren().addAll(headerTitle, filterContainer);
+        sidebarHeader.getChildren().addAll(searchBox, filterContainer);
 
         // User list
         userListView = new ListView<>();
@@ -352,15 +401,46 @@ public class HomeController {
 
         userListView.setOnMouseClicked(e -> {
             User selected = userListView.getSelectionModel().getSelectedItem();
-            if (selected != null) {
+            if (selected != null && !searchStatusLabel.isVisible()) {
                 selectUser(selected);
             }
         });
 
-        VBox.setVgrow(userListView, Priority.ALWAYS);
-        sidebar.getChildren().addAll(sidebarHeader, userListView);
+        StackPane userListStack = new StackPane();
+        VBox.setVgrow(userListStack, Priority.ALWAYS);
+        StackPane.setAlignment(searchStatusLabel, Pos.CENTER);
+
+        userListStack.getChildren().addAll(userListView, searchStatusLabel);
+
+        sidebar.getChildren().addAll(sidebarHeader, userListStack);
 
         return sidebar;
+    }
+
+    private void performSearch(String searchTearm) {
+        userListView.getItems().clear();
+        userListView.refresh();
+        searchStatusLabel.setText("Đang tìm kiếm...");
+        searchStatusLabel.setVisible(true);
+
+        new Thread(() -> {
+            try {
+                List<User> searchResults = chatService.searchUser(searchTearm);
+                Platform.runLater(() -> {
+                    latestSearchResults.clear();
+                    latestSearchResults.addAll(searchResults);
+                    updateListViewBasedOnFilterAndSearch();
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() -> {
+                    userListView.getItems().clear();
+                    latestSearchResults.clear();
+                    searchStatusLabel.setText("Lỗi khi tìm kiếm!");
+                    searchStatusLabel.setVisible(true);
+                });
+            }
+        }).start();
     }
 
     private VBox createChatArea() {
@@ -422,7 +502,7 @@ public class HomeController {
             if (selectedUser == null) return;
 
             // is typing (no type before)
-            if (!newVal.isEmpty()){
+            if (!newVal.isEmpty()) {
                 socketService.emitStartTyping(selectedUser.get_id());
 
                 // reset old timer
@@ -456,19 +536,21 @@ public class HomeController {
     private void loadUsers() {
         new Thread(() -> {
             try {
-                users = chatService.getUsers();
+                allUsers = chatService.getUsers();
                 Platform.runLater(() -> {
-                    for (User u : users){
-                        if(onlineUserIds.contains(u.get_id())) {
+                    for (User u : allUsers) {
+                        if (onlineUserIds.contains(u.get_id())) {
                             u.setOnline(true);
                         }
                         u.updateStatusPreview();
                     }
 
                     userListView.getItems().clear();
-                    userListView.getItems().addAll(users);
+                    userListView.getItems().addAll(allUsers);
 
+                    updateListViewBasedOnFilterAndSearch();
                     updateOnlineCountLabel();
+                    searchStatusLabel.setVisible(false);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
@@ -477,6 +559,60 @@ public class HomeController {
                 });
             }
         }).start();
+    }
+
+    private void updateListViewBasedOnFilterAndSearch() {
+        Platform.runLater(() -> {
+            String currentSearchTerm = searchField != null ? searchField.getText().trim() : "";
+            List<User> usersToFilter;
+
+            if (!currentSearchTerm.isEmpty() && !latestSearchResults.isEmpty()) {
+                usersToFilter = new ArrayList<>(latestSearchResults);
+                System.out.println("latest" + latestSearchResults);
+            } else if (currentSearchTerm.isEmpty()) {
+                usersToFilter = new ArrayList<>(this.allUsers);
+            } else {
+                userListView.getItems().clear();
+                searchStatusLabel.setText("Không tìm thấy người dùng.");
+                searchStatusLabel.setVisible(true);
+
+                currentDisplayedUsers.clear();
+                return;
+            }
+
+            for (User u : usersToFilter) {
+                u.setOnline(onlineUserIds.contains(u.get_id()));
+                u.updateStatusPreview();
+            }
+
+            List<User> finalUsersToDisplay = new ArrayList<>(usersToFilter);
+            System.out.println(finalUsersToDisplay + "before check");
+            System.out.println(usersToFilter + "usertofilter");
+            System.out.println(latestSearchResults + "latest");
+            if (onlineOnlyCheck != null && onlineOnlyCheck.isSelected()) {
+                finalUsersToDisplay = finalUsersToDisplay.stream()
+                        .filter(User::isOnline)
+                        .toList();
+                System.out.println("final only check" + finalUsersToDisplay);
+            }
+
+            currentDisplayedUsers.clear();
+            currentDisplayedUsers.addAll(finalUsersToDisplay);
+            userListView.getItems().setAll(currentDisplayedUsers);
+            System.out.println("final" + finalUsersToDisplay);
+            System.out.println("current" + currentDisplayedUsers);
+            System.out.println();
+
+            if (finalUsersToDisplay.isEmpty() && !currentSearchTerm.isEmpty()) {
+                searchStatusLabel.setText("Không tìm thấy người dùng phù hợp");
+                searchStatusLabel.setVisible(true);
+            } else if (finalUsersToDisplay.isEmpty() && currentSearchTerm.isEmpty() && onlineOnlyCheck.isSelected()) {
+                searchStatusLabel.setText("Không người dùng online nào khớp");
+                searchStatusLabel.setVisible(true);
+            } else {
+                searchStatusLabel.setVisible(false);
+            }
+        });
     }
 
     private void selectUser(User user) {
@@ -626,12 +762,12 @@ public class HomeController {
 
                 Node myAvatar = createAvatarNode(currentUser.getProfilePic(), 40, 24);
 
-                if (messages.indexOf(message) == messages.size() - 1){
+                if (messages.indexOf(message) == messages.size() - 1) {
                     Label statusLabel = new Label("Đã gửi");
                     statusLabel.getStyleClass().add("message-status");
                     statusLabel.setId("lastMessageStatus");
 
-                    if (selectedUser != null && message.isSeenBy(selectedUser.get_id())){
+                    if (selectedUser != null && message.isSeenBy(selectedUser.get_id())) {
                         statusLabel.setText("Đã xem");
                     }
 
@@ -647,7 +783,6 @@ public class HomeController {
             messageContainer.getChildren().add(messageBox);
         }
     }
-
 
     private void sendMessage() {
         if (selectedUser == null || messageInput.getText().trim().isEmpty()) {
@@ -700,7 +835,7 @@ public class HomeController {
 
         // Create profile view
         VBox profileView = createProfileView(currentUser);
-        
+
         // Replace center content with profile view
         mainContainer.setCenter(profileView);
     }
@@ -861,7 +996,7 @@ public class HomeController {
     private void showSettings() {
         // Create settings view
         VBox settingsView = createSettingsView();
-        
+
         // Replace center content with settings view
         mainContainer.setCenter(settingsView);
     }
@@ -905,11 +1040,11 @@ public class HomeController {
         themeLabel.getStyleClass().add("settings-section-title");
 
         ToggleGroup themeGroup = new ToggleGroup();
-        
+
         RadioButton lightTheme = new RadioButton("Sáng (Light)");
         lightTheme.setToggleGroup(themeGroup);
         lightTheme.getStyleClass().add("theme-radio");
-        
+
         RadioButton darkTheme = new RadioButton("Tối (Dark)");
         darkTheme.setToggleGroup(themeGroup);
         darkTheme.getStyleClass().add("theme-radio");
@@ -1023,7 +1158,7 @@ public class HomeController {
 
                 // data binding style
                 user.isTypingProperty().addListener((obs, wasTyping, isTyping) -> {
-                    if (isTyping){
+                    if (isTyping) {
                         statusLabel.setStyle("-fx-text-fill: #31a24c; -fx-font-style: italic;");
                     } else {
                         statusLabel.setStyle("");
@@ -1031,7 +1166,7 @@ public class HomeController {
                 });
 
                 // unread messages
-                if (user.getUnreadCount() > 0){
+                if (user.getUnreadCount() > 0) {
                     Label badge = new Label(String.valueOf(user.getUnreadCount()));
                     badge.getStyleClass().add("unread-badge");
 
@@ -1047,7 +1182,7 @@ public class HomeController {
         }
     }
 
-    private Node createAvatarNode(String photoUrl, double avatarNodeSize, int iconSize){
+    private Node createAvatarNode(String photoUrl, double avatarNodeSize, int iconSize) {
         if (photoUrl != null && !photoUrl.isEmpty()) {
             try {
                 ImageView avatar = new ImageView(new Image(photoUrl, true));
@@ -1061,7 +1196,7 @@ public class HomeController {
         }
 
         // --- TẠO FONT ICON MẶC ĐỊNH ---
-        org.kordamp.ikonli.javafx.FontIcon defaultIcon = new org.kordamp.ikonli.javafx.FontIcon("mdi2a-account");
+        FontIcon defaultIcon = new FontIcon("mdi2a-account");
         defaultIcon.setIconSize(iconSize);
         defaultIcon.getStyleClass().add("avatar-icon"); // Để đổi màu trong CSS
 
@@ -1074,4 +1209,3 @@ public class HomeController {
         return container;
     }
 }
-

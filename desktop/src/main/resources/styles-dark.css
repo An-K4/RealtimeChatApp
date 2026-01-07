@@ -77,6 +77,24 @@
     -fx-padding: 10;
 }
 
+.input-search {
+    -fx-background-color: #333333;
+    -fx-border-color: #BDBDBD;
+    -fx-border-width: 1;
+    -fx-border-radius: 15;
+    -fx-background-radius: 15;
+    -fx-padding: 2 0 2 10;
+}
+
+.search-status-label {
+    -fx-font-size: 16px; /* Chữ to hơn */
+    -fx-text-fill: #e0e0e0; /* Màu chữ trắng/xám sáng nổi bật trên nền tối */
+    -fx-background-color: transparent; /* Nền trong suốt */
+    -fx-padding: 10px; /* Thêm chút padding */
+    -fx-alignment: center; /* Căn giữa */
+    -fx-opacity: 0.85; /* Hơi mờ một chút cho đẹp */
+}
+
 .text-input {
     -fx-background-color: transparent;
     -fx-border-width: 0;
