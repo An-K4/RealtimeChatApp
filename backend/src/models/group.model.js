@@ -10,7 +10,7 @@ const groupSchema = new mongoose.Schema({
   description: {
     type: String
   },
-  createdBy: {
+  owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true

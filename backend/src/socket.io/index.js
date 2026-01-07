@@ -1,5 +1,6 @@
 const authMiddleware = require("./middlewares/auth.middleware");
 const chatHandler = require("./handlers/chat.handler");
+const groupChatHandler = require("./handlers/group.chat");
 
 module.exports = (httpServer) => {
   const {
@@ -73,6 +74,7 @@ module.exports = (httpServer) => {
       }
     })
     chatHandler(io, socket);
+    groupChatHandler(io, socket);
   })
 
   return io;
