@@ -174,7 +174,51 @@ module.exports.getGroupMessages = async (req, res) => {
 }
 
 module.exports.updateGroup = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { id } = req.params;
+    const { name, description, avatar } = req.body;
+    
+    if(!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: "ID Nhóm không tồn tại"});
 
+    const group = await Group.findById(id);
+    if(!group) return res.status(400).json({ message: "Nhóm không tồn tại"});
+
+    if(!group.isActive) return res.status(400).json({ message: "Nhóm không còn hoạt động"});
+
+    const member = group.members.find(m => m.userId.toString() === userId.toString());
+    if(!member) return res.status(400).json({ message: "Bạn không phải thành viên nhóm này"});
+
+    if(member.role !== "admin") {
+      return res.status(400).json({ message: "Chỉ admin được thay đổi thông tin nhóm"});
+    }
+
+    if (name !== undefined) {
+      if (name.trim() === '') {
+        return res.status(400).json({ message: "Tên nhóm không được để trống" });
+      }
+      group.name = name.trim();
+    }
+
+    if (description !== undefined) {
+      group.description = description.trim();
+    }
+
+    if (avatar !== undefined) {
+      group.avatar = avatar;
+    }
+
+    await group.save();
+
+    return res.status(200).json({
+      message: "Cập nhật thành công",
+      group
+    })
+  } catch (error) {
+    console.log("Lỗi khi sửa nhóm: ", error);
+    return res.status(400).json({ message: "Lỗi server khi sửa nhóm"});
+  }
+  
 }
 module.exports.getInfoGroup = async (req, res) => {
 
@@ -212,7 +256,7 @@ module.exports.deleleGroup = async (req, res) => {
     if(member.role === "admin") {
       group.isActive = false;
       await group.save();
-      return res.status(200).json({ message: "Xóa nhóm thành công"});
+      return res.status(200).json({ message: "Xóa nhóm thành công", group});
     }
     if(member.role === "member") {
       group.members.filter(m => m.userId.toString() !== userId.toString());
@@ -220,7 +264,7 @@ module.exports.deleleGroup = async (req, res) => {
         group.isActive = false;
       }
       await group.save();
-      return res.status(200).json({ message: "Rời nhóm thành công"});
+      return res.status(200).json({ message: "Rời nhóm thành công", group});
     }
   } catch (error) {
     console.log("Lỗi khi xóa nhóm: ", error);
