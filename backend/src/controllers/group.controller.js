@@ -193,5 +193,37 @@ module.exports.deleteMember = async (req, res) => {
 }
 
 module.exports.deleleGroup = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { id } = req.params;
 
+    if(!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: "ID Nhóm không hợp lệ"});
+
+    const group = await Group.findById(id)
+
+    if(!group) return res.status(400).json({ message: "Nhóm không tồn tại"});
+
+    if(!group.isActive) {
+      return res.status(400).json({ message: "Nhóm đã dừng hoạt động"});
+    }
+
+    const member = group.members.find(m => m.userId.toString() === userId.toString());
+    if(!member) return res.status(400).json({ message: "Bạn không phải là thành viên của nhóm này"});
+    if(member.role === "admin") {
+      group.isActive = false;
+      await group.save();
+      return res.status(200).json({ message: "Xóa nhóm thành công"});
+    }
+    if(member.role === "member") {
+      group.members.filter(m => m.userId.toString() !== userId.toString());
+      if(group.members.length === 0) {
+        group.isActive = false;
+      }
+      await group.save();
+      return res.status(200).json({ message: "Rời nhóm thành công"});
+    }
+  } catch (error) {
+    console.log("Lỗi khi xóa nhóm: ", error);
+    return res.status(500).json({ message: "Lỗi server khi xóa nhóm"})
+  }
 }
