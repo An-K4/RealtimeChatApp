@@ -1,5 +1,4 @@
 const Message = require("../models/message.model");
-const User = require("../models/user.model");
 const mongoose = require("mongoose");
 
 // lấy messages giữa tôi và người này
@@ -7,8 +6,6 @@ module.exports.getMessages = async (req, res) => {
   try {
     const { id: friendId } = req.params;
     const userId = req.user.id;
-
-    console.log(userId, friendId);
 
     // lấy tất cả messages giữa tôi và người này
     const messages = await Message.find({

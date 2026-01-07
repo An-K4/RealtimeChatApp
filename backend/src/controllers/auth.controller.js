@@ -5,7 +5,6 @@ const BlacklistedToken = require("../models/blacklistedToken.model");
 const jwt = require("jsonwebtoken");
 // login
 module.exports.login = async (req, res) => {
-  console.log("login")
   try {
     const {username, password} = req.body;
     // check user
@@ -26,7 +25,6 @@ module.exports.login = async (req, res) => {
     // tạo token
     const token = generateTokenService.generateToken(user);
 
-    console.log(token);
     return res.status(200).json({
       message: "Đăng nhập thành công",
       token
