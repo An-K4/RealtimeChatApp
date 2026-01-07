@@ -48,7 +48,7 @@ const onlineUsers = new Map();
 
 // Typing timeout reference
 let typingTimeout = null;
-const TYPING_TIMEOUT = 2000; // 2 giây
+const TYPING_TIMEOUT = 1000; // 1 giây
 
 // Search debounce timeout
 let searchTimeout = null;

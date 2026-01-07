@@ -74,4 +74,6 @@ module.exports = (httpServer) => {
     })
     chatHandler(io, socket);
   })
+
+  return io;
 }

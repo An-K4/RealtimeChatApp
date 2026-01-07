@@ -53,7 +53,8 @@ app.get("/", (req, res) => {
 UserRouter(app)
 
 const httpServer = createServer(app);
-initSocket(httpServer);
+const io = initSocket(httpServer);
+app.set('io', io);
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
