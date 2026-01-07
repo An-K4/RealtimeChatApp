@@ -182,15 +182,15 @@ module.exports.updateGroup = async (req, res) => {
     if(!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: "ID Nhóm không tồn tại"});
 
     const group = await Group.findById(id);
-    if(!group) return res.status(400).json({ message: "Nhóm không tồn tại"});
+    if(!group) return res.status(404).json({ message: "Nhóm không tồn tại"});
 
     if(!group.isActive) return res.status(400).json({ message: "Nhóm không còn hoạt động"});
 
     const member = group.members.find(m => m.userId.toString() === userId.toString());
-    if(!member) return res.status(400).json({ message: "Bạn không phải thành viên nhóm này"});
+    if(!member) return res.status(403).json({ message: "Bạn không phải thành viên nhóm này"});
 
     if(member.role !== "admin") {
-      return res.status(400).json({ message: "Chỉ admin được thay đổi thông tin nhóm"});
+      return res.status(403).json({ message: "Chỉ admin được thay đổi thông tin nhóm"});
     }
 
     if (name !== undefined) {
@@ -220,9 +220,30 @@ module.exports.updateGroup = async (req, res) => {
   }
   
 }
-module.exports.getInfoGroup = async (req, res) => {
 
+module.exports.getInfoGroup = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { id } = req.params;
+
+    if(!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: "Id nhóm không hợp lệ"});
+
+    const group = await Group.findById(id)
+    .populate("members.userId", "username avatar fullName")
+    .populate("createdBy", "username avatar fullName");
+    if(!group) return res.status(404).json({ message: "Nhóm không tồn tại"});
+    if(!group.isActive) return res.status(400).json({ message: "Nhóm không còn hoạt động"});
+
+    const member = group.members.find(m => m.userId._id.toString() === userId.toString());
+    console.log(group);
+    if(!member) return res.status(403).json({ message: "Bạn không phải thành viên của nhóm này"});
+    return res.status(200).json({ message: "Lấy thông tin nhóm thành công", group});
+  } catch (error) {
+    console.log("Lỗi khi lấy thông tin nhóm: ", error);
+    return res.status(500).json({ message: "Lỗi server khi lấy thông tin nhóm"});
+  }
 }
+
 module.exports.addMember = async (req, res) => {
 
 }
@@ -245,14 +266,14 @@ module.exports.deleleGroup = async (req, res) => {
 
     const group = await Group.findById(id)
 
-    if(!group) return res.status(400).json({ message: "Nhóm không tồn tại"});
+    if(!group) return res.status(404).json({ message: "Nhóm không tồn tại"});
 
     if(!group.isActive) {
       return res.status(400).json({ message: "Nhóm đã dừng hoạt động"});
     }
 
     const member = group.members.find(m => m.userId.toString() === userId.toString());
-    if(!member) return res.status(400).json({ message: "Bạn không phải là thành viên của nhóm này"});
+    if(!member) return res.status(403).json({ message: "Bạn không phải là thành viên của nhóm này"});
     if(member.role === "admin") {
       group.isActive = false;
       await group.save();
