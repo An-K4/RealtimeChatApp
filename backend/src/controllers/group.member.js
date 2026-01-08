@@ -65,7 +65,7 @@ module.exports.addMember = async (req, res) => {
 module.exports.changeRole = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { id, memberId: targetUserId } = req.params;
+    const { id, memberId } = req.params;
     const { newRole } = req.body;
 
     if(!mongoose.Types.ObjectId.isValid(id)) {
@@ -90,13 +90,13 @@ module.exports.changeRole = async (req, res) => {
       return res.status(403).json({ message: "Chỉ người chủ nhóm mới được đổi role" });
     }
 
-    const targetMember = group.members.find(m => m.userId.toString() === targetUserId);
+    const targetMember = group.members.find(m => m.userId.toString() === memberId.toString());
     if(!targetMember) {
       return res.status(404).json({ message: "Thành viên không tồn tại trong nhóm" });
     }
 
     // Không thể hạ quyền chính mình
-    if (userId.toString() === targetUserId) {
+    if (userId.toString() === memberId.toString()) {
       return res.status(403).json({ message: "Bạn không thể hạ quyền chính mình" });
     }
 

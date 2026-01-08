@@ -4,18 +4,28 @@ const Message = require("../../models/message.model");
 module.exports =  (io, socket) => {
   socket.on("send-message", async (data, updateStatus) => {
     try {
+
+      if (!data.content || !data.receiverId) {
+        return updateStatus({success: false, message: "Thiếu content hoặc receiverId"});
+      }
+
       const savedMessage = await Message.create({
         senderId: socket.user._id,
         receiverId: data.receiverId,
-        content: data.content
+        content: data.content.trim(),
+        replyTo: data.replyTo || null,
+        attachments: data.fileUrl || null
       });
      
-      console.log(savedMessage.createdAt)
+      // console.log(savedMessage.createdAt)
       updateStatus({success: true});
       io.to(data.receiverId.toString()).emit("receive-message", {
+        _id: savedMessage._id.toString(),
         senderId: socket.user._id.toString(), // Thêm senderId để người nhận biết ai gửi
         content: data.content,
-        sentAt: savedMessage.createdAt
+        sentAt: savedMessage.createdAt,
+        replyTo: data.replyTo || null,
+        attachments: data.fileUrl || null
       });
 
     } catch (error) {

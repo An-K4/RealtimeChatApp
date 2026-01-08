@@ -21,7 +21,6 @@ exports.upload = async (req, res, next) => {
               }
             }
           );
-
           streamifier.createReadStream(req.file.buffer).pipe(stream);
         });
       };
