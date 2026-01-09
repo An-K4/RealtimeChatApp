@@ -122,6 +122,69 @@ public class ApiService {
         }
     }
 
+    public <T> T patch(String endpoint, Object body, Class<T> responseClass) throws IOException {
+        String json = gson.toJson(body);
+        RequestBody requestBody = RequestBody.create(json, MediaType.get("application/json; charset=utf-8"));
+
+        Request.Builder requestBuilder = new Request.Builder()
+                .url(BASE_URL + endpoint)
+                .patch(requestBody) // <-- Dùng .patch()
+                .addHeader("Content-Type", "application/json");
+
+        if (authToken != null) {
+            requestBuilder.addHeader("Authorization", "Bearer " + authToken);
+        }
+
+        Request request = requestBuilder.build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("PATCH request failed: " + response + " - " + errorBody);
+            }
+
+            if (responseClass == Void.class) return null;
+
+            String responseJson = response.body() != null ? response.body().string() : "";
+            if (responseClass == String.class) {
+                return (T) responseJson;
+            }
+            return gson.fromJson(responseJson, responseClass);
+        }
+    }
+
+    public <T> T postMultipart(String endpoint, java.io.File file, Class<T> responseClass) throws IOException {
+        // Tạo một multipart body
+        RequestBody requestBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart(
+                        "file", // <-- "fieldname để là file"
+                        file.getName(),
+                        RequestBody.create(file, MediaType.parse("image/*")) // Tự động nhận diện kiểu file ảnh
+                )
+                .build();
+
+        Request.Builder requestBuilder = new Request.Builder()
+                .url(BASE_URL + endpoint)
+                .post(requestBody);
+
+        if (authToken != null) {
+            requestBuilder.addHeader("Authorization", "Bearer " + authToken);
+        }
+
+        Request request = requestBuilder.build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("Multipart POST request failed: " + response + " - " + errorBody);
+            }
+
+            String responseJson = response.body() != null ? response.body().string() : "";
+            return gson.fromJson(responseJson, responseClass);
+        }
+    }
+
     public <T> T delete(String endpoint, Class<T> responseClass) throws IOException {
         Request.Builder requestBuilder = new Request.Builder()
                 .url(BASE_URL + endpoint)

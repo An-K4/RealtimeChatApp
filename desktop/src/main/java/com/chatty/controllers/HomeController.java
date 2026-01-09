@@ -13,9 +13,11 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -862,8 +864,10 @@ public class HomeController {
         TextField nameField = new TextField();
         nameField.setPromptText("Tên nhóm (bắt buộc)");
 
-        TextField descriptionField = new TextField();
-        descriptionField.setPromptText("Mô tả (tùy chọn)");
+        TextArea descriptionArea = new TextArea();
+        descriptionArea.setPromptText("Mô tả (tùy chọn)");
+        descriptionArea.setWrapText(true);
+        descriptionArea.setPrefRowCount(5);
 
         // --- Member Selection ---
         VBox memberSection = new VBox(10);
@@ -932,7 +936,7 @@ public class HomeController {
         });
 
         memberSection.getChildren().addAll(membersLabel, memberSearchField, searchResultsView, selectedMembersScrollPane);
-        content.getChildren().addAll(nameField, descriptionField, memberSection);
+        content.getChildren().addAll(nameField, descriptionArea, memberSection);
         dialogPane.setContent(content);
 
         // --- Dialog Action ---
@@ -952,7 +956,7 @@ public class HomeController {
                 new Thread(() -> {
                     try {
                         List<String> memberIds = selectedMembers.stream().map(User::get_id).collect(Collectors.toList());
-                        groupService.createGroup(nameField.getText().trim(), descriptionField.getText().trim(), memberIds);
+                        groupService.createGroup(nameField.getText().trim(), descriptionArea.getText().trim(), memberIds);
                         Platform.runLater(() -> {
                             loadGroups(); // Tải lại danh sách nhóm
                         });
@@ -1045,10 +1049,10 @@ public class HomeController {
                     try {
                         Group detailedGroup = groupService.getGroupInfo(group.get_id());
                         Platform.runLater(() -> {
-                            parentDialog.close();
+                            // parentDialog.close();
                             showEditGroupDialog(detailedGroup);
                         });
-                    } catch (IOException ex) {
+                    } catch (Exception ex) {
                         Platform.runLater(() -> showAlert("Lỗi", "Không thể lấy thông tin chi tiết của nhóm.", Alert.AlertType.ERROR));
                     }
                 }).start();
@@ -1122,46 +1126,155 @@ public class HomeController {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Chỉnh sửa thông tin nhóm");
 
+        // Mảng một phần tử để lưu file được chọn từ bên trong lambda
+        final File[] selectedFile = {null};
+
+        // Tạo các thành phần giao diện chính
+        VBox content = createDialogLayout();
+        ImageView avatarPreview = createAvatarPreview(group.getAvatar());
+        Button selectAvatarBtn = createSelectAvatarButton(dialog, avatarPreview, selectedFile);
+        TextField nameField = new TextField(group.getName());
+        TextArea descArea = createDescriptionArea(group.getDescription());
+        VBox fieldsBox = createFormFields(nameField, descArea);
+
+        // Thêm các thành phần vào layout chính
+        content.getChildren().addAll(
+                avatarPreview,
+                selectAvatarBtn,
+                new Separator(Orientation.HORIZONTAL),
+                fieldsBox
+        );
+
+        // Thiết lập DialogPane
         DialogPane dialogPane = dialog.getDialogPane();
         dialogPane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
-        VBox content = new VBox(10);
-        content.setPadding(new Insets(20));
-        TextField nameField = new TextField(group.getName());
-        TextField descField = new TextField(group.getDescription());
-
-        content.getChildren().addAll(new Label("Tên nhóm:"), nameField, new Label("Mô tả:"), descField);
         dialogPane.setContent(content);
+
+        // Logic cho nút OK
+        setupOkButton(dialog, group, nameField, descArea, selectedFile);
+
+        dialog.showAndWait();
+    }
+
+// --- CÁC HÀM TRỢ GIÚP (HELPER METHODS) ĐỂ LÀM SẠCH CODE ---
+
+    private VBox createDialogLayout() {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(20));
+        content.setAlignment(Pos.CENTER);
+        content.setMinWidth(400);
+        content.setMinHeight(500);
+        return content;
+    }
+
+    private ImageView createAvatarPreview(String initialAvatarUrl) {
+        ImageView avatarPreview = new ImageView();
+        avatarPreview.setFitHeight(120);
+        avatarPreview.setFitWidth(120);
+        avatarPreview.setClip(new Circle(60, 60, 60)); // Bo tròn ảnh
+
+        try {
+            if (initialAvatarUrl != null && !initialAvatarUrl.isEmpty() && initialAvatarUrl.startsWith("http")) {
+                avatarPreview.setImage(new Image(initialAvatarUrl, true));
+            } else {
+                throw new Exception("Avatar URL không hợp lệ hoặc rỗng.");
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi tải avatar nhóm: " + e.getMessage() + ". Tải ảnh mặc định.");
+            try {
+                avatarPreview.setImage(new Image(getClass().getResource("/logo.png").toExternalForm()));
+            } catch (Exception ex) {
+                System.err.println("Không thể tải ảnh mặc định /logo.png: " + ex.getMessage());
+            }
+        }
+        return avatarPreview;
+    }
+
+    private Button createSelectAvatarButton(Dialog<?> owner, ImageView preview, File[] selectedFile) {
+        Button selectAvatarBtn = new Button("Thay đổi ảnh đại diện");
+        selectAvatarBtn.setOnAction(e -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Chọn ảnh đại diện");
+            fileChooser.getExtensionFilters().addAll(
+                    new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
+            );
+            File file = fileChooser.showOpenDialog(owner.getOwner());
+            if (file != null) {
+                selectedFile[0] = file;
+                preview.setImage(new Image(file.toURI().toString()));
+            }
+        });
+        return selectAvatarBtn;
+    }
+
+    private TextArea createDescriptionArea(String initialDescription) {
+        TextArea descArea = new TextArea(initialDescription);
+        descArea.setWrapText(true);
+        descArea.setPrefRowCount(5);
+        return descArea;
+    }
+
+    private VBox createFormFields(TextField nameField, TextArea descArea) {
+        VBox fieldsBox = new VBox(5);
+        fieldsBox.setAlignment(Pos.CENTER_LEFT);
+        fieldsBox.getChildren().addAll(
+                new Label("Tên nhóm:"), nameField,
+                new Label("Mô tả:"), descArea
+        );
+        return fieldsBox;
+    }
+
+    private void setupOkButton(Dialog<?> dialog, Group group, TextField nameField, TextArea descArea, File[] selectedFile) {
+        Node okButton = dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setDisable(nameField.getText().trim().isEmpty());
+        nameField.textProperty().addListener((obs, oldV, newV) -> okButton.setDisable(newV.trim().isEmpty()));
 
         dialog.setResultConverter(button -> {
             if (button == ButtonType.OK) {
-                String newName = nameField.getText().trim();
-                String newDesc = descField.getText().trim();
-                if (newName.isEmpty()) {
-                    showAlert("Lỗi", "Tên nhóm không được để trống.", Alert.AlertType.ERROR);
-                    return null;
-                }
-                new Thread(() -> {
-                    try {
-                        groupService.updateGroup(group.get_id(), newName, newDesc, null); // avatar null for now
-                        Platform.runLater(() -> {
-                            loadGroups();
-                            // Nếu đang xem nhóm này thì cập nhật header
-                            if (selectedGroup != null && selectedGroup.get_id().equals(group.get_id())) {
-                                selectedGroup.setName(newName);
-                                selectedGroup.setDescription(newDesc);
-                                selectGroup(selectedGroup); // Tải lại header
-                            }
-                        });
-                    } catch (Exception ex) {
-                        Platform.runLater(() -> showAlert("Lỗi", "Cập nhật thất bại: " + ex.getMessage(), Alert.AlertType.ERROR));
-                    }
-                }).start();
+                // Khi nhấn OK, gọi hàm xử lý logic cập nhật
+                handleUpdateGroup(
+                        group,
+                        nameField.getText().trim(),
+                        descArea.getText().trim(),
+                        selectedFile[0] // File đã được chọn
+                );
             }
             return null;
         });
+    }
 
-        dialog.showAndWait();
+    /**
+     * Xử lý logic upload và cập nhật thông tin nhóm trên một luồng riêng.
+     */
+    private void handleUpdateGroup(Group group, String newName, String newDesc, File newAvatarFile) {
+        new Thread(() -> {
+            try {
+                String finalAvatarUrl = group.getAvatar();
+
+                // Bước 1: Nếu có file mới được chọn, tải nó lên và lấy URL
+                if (newAvatarFile != null) {
+                    Platform.runLater(() -> showAlert("Thông báo", "Đang tải ảnh lên...", Alert.AlertType.INFORMATION));
+                    finalAvatarUrl = groupService.uploadGroupAvatar(newAvatarFile);
+                }
+
+                // Bước 2: Cập nhật thông tin nhóm với dữ liệu mới
+                groupService.updateGroup(group.get_id(), newName, newDesc, finalAvatarUrl);
+
+                // Bước 3: Cập nhật lại giao diện trên luồng JavaFX
+                Platform.runLater(() -> {
+                    showAlert("Thành công", "Cập nhật thông tin nhóm thành công!", Alert.AlertType.INFORMATION);
+                    loadGroups(); // Tải lại danh sách nhóm
+                    // Nếu nhóm đang được chọn là nhóm vừa sửa, tải lại thông tin chi tiết
+                    if (selectedGroup != null && selectedGroup.get_id().equals(group.get_id())) {
+                        selectGroup(group);
+                    }
+                });
+
+            } catch (Exception ex) {
+                ex.printStackTrace(); // In lỗi chi tiết ra console để gỡ lỗi
+                Platform.runLater(() -> showAlert("Lỗi", "Cập nhật thất bại: " + ex.getMessage(), Alert.AlertType.ERROR));
+            }
+        }).start();
     }
 
     private void showAddMemberDialog(Group group) {
@@ -1910,7 +2023,6 @@ public class HomeController {
         @Override
         protected void updateItem(Group.GroupMember member, boolean empty) {
             super.updateItem(member, empty);
-            // Sửa lại điều kiện kiểm tra, sử dụng getter mới
             if (empty || member == null || member.getUser() == null || groupContext == null) {
                 setGraphic(null);
             } else {
@@ -1921,27 +2033,81 @@ public class HomeController {
                 VBox info = new VBox(2);
                 info.getChildren().add(new Label(member.getUser().getFullName()));
 
-                String roleText = "";
+                User currentUser = authService.getCurrentUser();
+                boolean isCurrentUserOwner = groupContext.isUserOwner(currentUser.get_id());
+                boolean isThisMemberTheOwner = groupContext.isUserOwner(member.getUser().get_id());
 
-                // Thay vì so sánh trực tiếp, hãy dùng phương thức isUserOwner an toàn
-                if (groupContext.isUserOwner(member.getUser().get_id())) {
-                    roleText = "Chủ nhóm";
-                } else if (member.isAdmin()) { // Dùng hàm có sẵn của GroupMember
-                    roleText = "Quản trị viên";
+                // --- UI HIỂN THỊ VAI TRÒ ---
+                // Nếu người dùng hiện tại là Owner, hiển thị ComboBox để đổi vai trò
+                if (isCurrentUserOwner && !isThisMemberTheOwner) {
+                    ComboBox<String> roleComboBox = new ComboBox<>();
+                    roleComboBox.getItems().addAll("Quản trị viên", "Thành viên");
+                    roleComboBox.setValue(member.isAdmin() ? "Quản trị viên" : "Thành viên");
+
+                    roleComboBox.setOnAction(e -> {
+                        String selectedRole = roleComboBox.getValue();
+                        String newRoleApi = "Quản trị viên".equals(selectedRole) ? "admin" : "member";
+                        handleChangeRole(member, newRoleApi);
+                    });
+
+                    info.getChildren().add(roleComboBox);
+
                 } else {
-                    roleText = "Thành viên";
+                    // Ngược lại, chỉ hiển thị Label
+                    String roleText;
+                    if (isThisMemberTheOwner) {
+                        roleText = "Chủ nhóm";
+                    } else if (member.isAdmin()) {
+                        roleText = "Quản trị viên";
+                    } else {
+                        roleText = "Thành viên";
+                    }
+                    Label roleLabel = new Label(roleText);
+                    roleLabel.getStyleClass().add("last-message-preview");
+                    info.getChildren().add(roleLabel);
                 }
-                // ===================================
 
-                Label roleLabel = new Label(roleText);
-                roleLabel.getStyleClass().add("last-message-preview");
-                info.getChildren().add(roleLabel);
-
+                HBox.setHgrow(info, Priority.ALWAYS);
                 cell.getChildren().addAll(avatar, info);
                 setGraphic(cell);
             }
         }
+
+        private void handleChangeRole(Group.GroupMember member, String newRole) {
+            Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION,
+                    "Bạn có chắc muốn đổi vai trò của " + member.getUser().getFullName() + " thành " + newRole + "?",
+                    ButtonType.YES, ButtonType.NO);
+
+            confirmation.showAndWait().ifPresent(response -> {
+                if (response == ButtonType.YES) {
+                    new Thread(() -> {
+                        try {
+                            groupService.changeRole(groupContext.get_id(), member.getUser().get_id(), newRole);
+                            Platform.runLater(() -> {
+                                showAlert("Thành công", "Đã cập nhật vai trò thành công.", Alert.AlertType.INFORMATION);
+                                // Tải lại thông tin nhóm để cập nhật danh sách thành viên
+                                try {
+                                    Group updatedGroup = groupService.getGroupInfo(groupContext.get_id());
+                                    // Cần một phương thức để refresh lại tab members
+                                    // Tạm thời có thể select lại group để load lại toàn bộ
+                                    selectGroup(updatedGroup);
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            });
+                        } catch (Exception ex) {
+                            Platform.runLater(() -> showAlert("Lỗi", "Không thể đổi vai trò: " + ex.getMessage(), Alert.AlertType.ERROR));
+                        }
+                    }).start();
+                } else {
+                    // Nếu người dùng chọn NO, reset lại ComboBox
+                    getListView().refresh();
+                }
+            });
+        }
     }
+
+
 
     private class UserListCellSimple extends ListCell<User> {
         @Override
@@ -1955,3 +2121,4 @@ public class HomeController {
         }
     }
 }
+

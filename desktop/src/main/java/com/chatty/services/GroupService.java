@@ -7,11 +7,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class GroupService {
     private final ApiService apiService;
@@ -87,24 +90,13 @@ public class GroupService {
     /**
      * Cập nhật thông tin nhóm
      */
-    public Group updateGroup(String groupId, String name, String description, String avatar) throws IOException {
-        try {
-            JsonObject payload = new JsonObject();
-            if (name != null) payload.addProperty("name", name);
-            if (description != null) payload.addProperty("description", description);
-            if (avatar != null) payload.addProperty("avatar", avatar);
+    public void updateGroup(String groupId, String newName, String newDesc, String newAvatarUrl) throws IOException {
+        Map<String, Object> updateData = new HashMap<>();
+        updateData.put("name", newName);
+        updateData.put("description", newDesc);
+        updateData.put("avatar", newAvatarUrl);
 
-            JsonObject response = apiService.put("/groups/update/" + groupId, payload, JsonObject.class);
-
-            if (response != null && response.has("group")) {
-                return gson.fromJson(response.get("group"), Group.class);
-            }
-
-            return null;
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        }
+        apiService.patch("/groups/update/" + groupId, updateData, Void.class);
     }
 
     /**
@@ -255,6 +247,23 @@ public class GroupService {
             e.printStackTrace();
             throw e;
         }
+    }
+
+    // Lớp nội bộ đơn giản để Gson parse JSON response của việc upload
+    private static class UploadResponse {
+        private String url;
+
+        public String getUrl() {
+            return url;
+        }
+    }
+
+    public String uploadGroupAvatar(File file) throws IOException {
+        UploadResponse response = apiService.postMultipart("/messages/upload", file, UploadResponse.class);
+        if (response != null && response.getUrl() != null) {
+            return response.getUrl();
+        }
+        throw new IOException("API không trả về URL của ảnh sau khi upload.");
     }
 
     // ==================== TYPING INDICATORS ====================
