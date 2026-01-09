@@ -48,7 +48,7 @@ public class MessageDeserializer implements JsonDeserializer<Message> {
                 String senderIdString = senderElement.getAsString();
                 sender.set_id(senderIdString);
             }
-            message.setSender(sender);
+            message.setSenderId(sender.get_id());
         }
 
         // 5. Trả về đối tượng đã hoàn thiện

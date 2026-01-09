@@ -99,7 +99,7 @@ public class ChatService {
         senderUser.set_id(senderId); // Gán ID cho đối tượng User
 
         // 3. Gán cả đối tượng User vào tin nhắn
-        localMsg.setSender(senderUser);
+        localMsg.setSenderId(senderUser.get_id());
 
         // 4. Gán các thông tin còn lại
         localMsg.setReceiverId(receiverId);

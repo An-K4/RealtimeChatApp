@@ -187,6 +187,20 @@ public class HomeController {
 
         // User messages
         socketService.setOnNewMessage(message -> {
+            // ===== DEBUGGING CODE START =====
+            System.out.println("-----------------------------------------");
+            System.out.println("NEW MESSAGE RECEIVED AT: " + java.time.Instant.now());
+            System.out.println("  -> From Sender ID: '" + message.getSenderId() + "'");
+
+            if (selectedUser != null) {
+                System.out.println("  -> Current Selected User ID: '" + selectedUser.get_id() + "'");
+                boolean areIdsEqual = message.getSenderId().equals(selectedUser.get_id());
+                System.out.println("  -> Are IDs equal? " + areIdsEqual);
+            } else {
+                System.out.println("  -> Current Selected User is NULL!");
+            }
+            System.out.println("-----------------------------------------");
+            // ===== DEBUGGING CODE END =====
             if (selectedUser != null && message.getSenderId().equals(selectedUser.get_id())) {
                 messages.add(message);
                 Platform.runLater(() -> {
@@ -1638,7 +1652,7 @@ public class HomeController {
             chatService.sendMessage(authService.getCurrentUser().get_id(), selectedUser.get_id(), content);
             // Local echo
             Message localMsg = new Message();
-            localMsg.setSender(authService.getCurrentUser());
+            localMsg.setSenderId(authService.getCurrentUser().get_id());
             localMsg.setReceiverId(selectedUser.get_id());
             localMsg.setContent(content);
             localMsg.setCreatedAt(Instant.now().toString());

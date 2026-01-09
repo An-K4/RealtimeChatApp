@@ -1,17 +1,11 @@
 package com.chatty.models;
 
-import com.google.gson.annotations.SerializedName;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class Message {
     private String _id;
-
-    // --- AFTER ---
-    @SerializedName("senderId") // Báo cho GSON biết trường này tương ứng với "senderId" trong JSON
-    private User sender; // Kiểu dữ liệu bây giờ là User object
-
+    private String senderId; // Kiểu dữ liệu bây giờ là User object
     private String receiverId;
     private String content;
     private String image;
@@ -30,17 +24,11 @@ public class Message {
     }
 
     public String getSenderId() {
-        return (sender != null) ? sender.get_id() : null;
+        return senderId;
     }
 
-    // Thêm hàm getter cho object sender
-    public User getSender() {
-        return sender;
-    }
-
-    // Sửa hàm setter (nếu cần)
-    public void setSender(User sender) {
-        this.sender = sender;
+    public void setSenderId(String senderId) {
+        this.senderId = senderId;
     }
 
     public String getReceiverId() {
