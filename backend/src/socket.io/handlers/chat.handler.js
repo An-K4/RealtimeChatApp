@@ -16,7 +16,7 @@ module.exports =  (io, socket) => {
         replyTo: data.replyTo || null,
         attachments: data.fileUrl || null
       });
-     
+
       // console.log(savedMessage.createdAt)
       updateStatus({success: true});
       io.to(data.receiverId.toString()).emit("receive-message", {
@@ -33,7 +33,7 @@ module.exports =  (io, socket) => {
       console.log(error);
       updateStatus({success: false})
     }
-    
+
   })
 
   // Xử lý khi người dùng xem tin nhắn

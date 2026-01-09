@@ -63,15 +63,8 @@ public class GroupMessage {
         this.groupId = groupId;
     }
 
-    public Object getSenderId() {
-        // Handle cả trường hợp senderId là string hoặc sender là object
-        if (sender != null) {
-            return sender;
-        }
-        if (sender != null) {
-            return sender.get_id();
-        }
-        return null;
+    public String getSenderId() {
+        return sender.get_id();
     }
 
     public void setSenderId(User sender) {

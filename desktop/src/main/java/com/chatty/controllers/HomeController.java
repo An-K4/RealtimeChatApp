@@ -685,60 +685,105 @@ public class HomeController {
         updateGroupListView();
     }
 
-    private void selectGroup(Group group) {
-        this.selectedGroup = group;
+    private void selectGroup(Group groupFromList) {
+        // 1. Lấy ID từ đối tượng group "tóm tắt" trong danh sách
+        String groupId = groupFromList.get_id();
         this.selectedUser = null; // Clear user selection
 
+        // 2. Hiển thị trạng thái đang tải (tùy chọn nhưng nên có)
+        showChatView();
+        messageContainer.getChildren().clear();
+        Label loadingLabel = new Label("Đang tải thông tin nhóm...");
+        loadingLabel.getStyleClass().add("no-chat-subtitle");
+        messageContainer.getChildren().add(loadingLabel);
+        // Cập nhật header tạm thời
+        HBox chatHeader = (HBox) ((VBox) messageScrollPane.getParent()).getChildren().get(0);
+        chatHeader.setVisible(true);
+        chatHeader.setManaged(true);
+        chatHeader.getChildren().clear();
+        Label tempGroupName = new Label(groupFromList.getName());
+        tempGroupName.getStyleClass().add("chat-header-name");
+        chatHeader.getChildren().add(tempGroupName);
+
+        // 3. Bắt đầu một luồng mới để không làm đơ giao diện
+        new Thread(() -> {
+            try {
+                // 4. Gọi API để lấy thông tin chi tiết của nhóm
+                Group detailedGroup = groupService.getGroupInfo(groupId);
+
+                // 5. Sau khi có dữ liệu, quay lại luồng chính để cập nhật UI
+                Platform.runLater(() -> {
+                    if (detailedGroup != null) {
+                        // 6. Gọi hàm render UI với dữ liệu đầy đủ
+                        renderSelectedGroupUI(detailedGroup);
+                    } else {
+                        // Xử lý lỗi nếu không tìm thấy nhóm
+                        showNoChatView();
+                        showAlert("Lỗi", "Không thể tải thông tin chi tiết của nhóm.", Alert.AlertType.ERROR);
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() -> {
+                    showNoChatView();
+                    showAlert("Lỗi", "Đã xảy ra lỗi khi tải dữ liệu nhóm: " + e.getMessage(), Alert.AlertType.ERROR);
+                });
+            }
+        }).start();
+    }
+
+    private void renderSelectedGroupUI(Group detailedGroup) {
+        this.selectedGroup = detailedGroup; // Cập nhật biến instance bằng dữ liệu chi tiết
+
         // Reset unread
-        group.setUnreadCount(0);
+        detailedGroup.setUnreadCount(0);
         groupListView.refresh();
 
         // Join group room
-        socketService.joinGroup(group.get_id());
+        socketService.joinGroup(detailedGroup.get_id());
 
-        Platform.runLater(() -> {
-            // Update chat header
-            HBox chatHeader = (HBox) ((VBox) messageScrollPane.getParent()).getChildren().get(0);
-            chatHeader.setVisible(true);
-            chatHeader.setManaged(true);
+        // Update chat header
+        HBox chatHeader = (HBox) ((VBox) messageScrollPane.getParent()).getChildren().get(0);
+        chatHeader.setVisible(true);
+        chatHeader.setManaged(true);
 
-            chatHeader.getChildren().clear();
-            Node avatarNode = createAvatarNode(group.getAvatar(), 40, 24);
-            avatarNode.getStyleClass().add("chat-header-avatar");
+        chatHeader.getChildren().clear();
+        Node avatarNode = createAvatarNode(detailedGroup.getAvatar(), 40, 24);
+        avatarNode.getStyleClass().add("chat-header-avatar");
 
-            VBox groupInfo = new VBox(5);
-            Label groupName = new Label(group.getName());
-            groupName.getStyleClass().add("chat-header-name");
-            Label memberCount = new Label(group.getMemberCount() + " members");
-            memberCount.getStyleClass().add("chat-header-status");
-            groupInfo.getChildren().addAll(groupName, memberCount);
+        VBox groupInfo = new VBox(5);
+        Label groupName = new Label(detailedGroup.getName());
+        groupName.getStyleClass().add("chat-header-name");
+        Label memberCount = new Label(detailedGroup.getMemberCount() + " members");
+        memberCount.getStyleClass().add("chat-header-status");
+        groupInfo.getChildren().addAll(groupName, memberCount);
 
-            Button groupMenuBtn = new Button();
-            FontIcon menuIcon = new FontIcon("mdi2d-dots-vertical");
-            menuIcon.setIconSize(20);
-            groupMenuBtn.setGraphic(menuIcon);
-            groupMenuBtn.getStyleClass().add("icon-button");
-            groupMenuBtn.setOnAction(e -> showGroupMenu(group));
+        Button groupMenuBtn = new Button();
+        FontIcon menuIcon = new FontIcon("mdi2d-dots-vertical");
+        menuIcon.setIconSize(20);
+        groupMenuBtn.setGraphic(menuIcon);
+        groupMenuBtn.getStyleClass().add("icon-button");
+        // Quan trọng: Truyền đối tượng detailedGroup vào hàm showGroupMenu
+        groupMenuBtn.setOnAction(e -> showGroupMenu(detailedGroup));
 
-            Button closeBtn = new Button();
-            FontIcon closeIcon = new FontIcon("mdi2c-close");
-            closeIcon.setIconSize(20);
-            closeBtn.setGraphic(closeIcon);
-            closeBtn.getStyleClass().add("close-button");
-            closeBtn.setOnAction(e -> {
-                selectedGroup = null;
-                showNoChatView();
-            });
-
-            HBox.setHgrow(groupInfo, Priority.ALWAYS);
-            chatHeader.getChildren().addAll(avatarNode, groupInfo, groupMenuBtn, closeBtn);
-
-            // Hide no chat view
-            showChatView();
-
-            // Load messages
-            loadGroupMessages();
+        Button closeBtn = new Button();
+        FontIcon closeIcon = new FontIcon("mdi2c-close");
+        closeIcon.setIconSize(20);
+        closeBtn.setGraphic(closeIcon);
+        closeBtn.getStyleClass().add("close-button");
+        closeBtn.setOnAction(e -> {
+            selectedGroup = null;
+            showNoChatView();
         });
+
+        HBox.setHgrow(groupInfo, Priority.ALWAYS);
+        chatHeader.getChildren().addAll(avatarNode, groupInfo, groupMenuBtn, closeBtn);
+
+        // Hide no chat view
+        showChatView();
+
+        // Load messages
+        loadGroupMessages();
     }
 
     private void loadGroupMessages() {
@@ -801,8 +846,6 @@ public class HomeController {
 
         messageScrollPane.setVvalue(1.0);
     }
-
-// ... (Phần code đã có trong supermain.txt từ đầu đến cuối hàm renderGroupMessages)
 
     private void showCreateGroupDialog() {
         Dialog<ButtonType> dialog = new Dialog<>();
@@ -1023,7 +1066,6 @@ public class HomeController {
         }
 
         leaveOrDeleteBtn.setOnAction(e -> {
-            // ... logic của nút này không đổi ...
             String confirmationText = isOwner ? "Bạn có chắc chắn muốn xóa vĩnh viễn nhóm này?" : "Bạn có chắc chắn muốn rời khỏi nhóm này?";
             Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION, confirmationText, ButtonType.YES, ButtonType.NO);
             confirmation.showAndWait().ifPresent(response -> {
@@ -1055,8 +1097,6 @@ public class HomeController {
 
         ListView<Group.GroupMember> membersListView = new ListView<>();
 
-        // SỬA LẠI DÒNG NÀY
-        // Thay vì new GroupMemberCell(), chúng ta truyền 'group' vào
         membersListView.setCellFactory(lv -> new GroupMemberCell(group));
 
         // Lấy danh sách thành viên chi tiết
@@ -1070,9 +1110,7 @@ public class HomeController {
             }
         }).start();
 
-        // ... phần còn lại của hàm không đổi ...
         HBox memberActions = new HBox(10);
-        // ...
         content.getChildren().addAll(new Label("Danh sách thành viên"), membersListView, memberActions);
         VBox.setVgrow(membersListView, Priority.ALWAYS);
         return content;
@@ -1481,14 +1519,6 @@ public class HomeController {
         if (selectedGroup != null) {
             // Send Group Message
             groupService.sendGroupMessage(selectedGroup.get_id(), content);
-            // Local echo
-            GroupMessage localMsg = new GroupMessage();
-            localMsg.setGroupId(selectedGroup.get_id());
-            localMsg.setSenderId(authService.getCurrentUser());
-            localMsg.setSender(authService.getCurrentUser());
-            localMsg.setContent(content);
-            localMsg.setCreatedAt(Instant.now().toString());
-            groupMessages.add(localMsg);
             renderGroupMessages();
         } else if (selectedUser != null) {
             // Send User Message
