@@ -1,5 +1,6 @@
 package com.chatty.services;
 
+import com.chatty.models.GroupMessage;
 import com.chatty.models.Message;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -28,6 +29,15 @@ public class SocketService {
     private Consumer<List<String>> onOnlineListReceived;
     private Consumer<String> onUserOnline;
     private Consumer<String> onUserOffline;
+
+    // group callbacks
+    private Consumer<GroupMessage> onNewGroupMessage;
+    private Consumer<String> onGroupTypingStart;
+    private Consumer<String> onGroupTypingStop;
+    private Consumer<JsonObject> onGroupMessageSeen;
+    private Consumer<JsonObject> onGroupCreated;
+    private Consumer<JsonObject> onGroupDeleted;
+    private Consumer<Void> onReloadGroups;
 
     // typing callbacks
     private Consumer<String> onTypingStart;
@@ -201,6 +211,80 @@ public class SocketService {
                 }
             });
 
+            socket.on("receive-group-message", args -> {
+                if (args.length > 0 && onNewGroupMessage != null) {
+                    try {
+                        GroupMessage message = gson.fromJson(args[0].toString(), GroupMessage.class);
+                        Platform.runLater(() -> onNewGroupMessage.accept(message));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+            socket.on("group-typing-start", args -> {
+                if (args.length > 0 && onGroupTypingStart != null) {
+                    try {
+                        JSONObject data = (JSONObject) args[0];
+                        String senderName = data.optString("senderName", "Someone");
+                        Platform.runLater(() -> onGroupTypingStart.accept(senderName));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+            socket.on("group-typing-stop", args -> {
+                if (args.length > 0 && onGroupTypingStop != null) {
+                    try {
+                        JSONObject data = (JSONObject) args[0];
+                        String senderId = data.optString("senderId");
+                        Platform.runLater(() -> onGroupTypingStop.accept(senderId));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+            socket.on("user-seen-message", args -> {
+                if (args.length > 0 && onGroupMessageSeen != null) {
+                    try {
+                        JsonObject data = gson.fromJson(args[0].toString(), JsonObject.class);
+                        Platform.runLater(() -> onGroupMessageSeen.accept(data));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+            socket.on("group-created", args -> {
+                if (args.length > 0 && onGroupCreated != null) {
+                    try {
+                        JsonObject data = gson.fromJson(args[0].toString(), JsonObject.class);
+                        Platform.runLater(() -> onGroupCreated.accept(data));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+            socket.on("group-deleted", args -> {
+                if (args.length > 0 && onGroupDeleted != null) {
+                    try {
+                        JsonObject data = gson.fromJson(args[0].toString(), JsonObject.class);
+                        Platform.runLater(() -> onGroupDeleted.accept(data));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+            socket.on("reload-groups", args -> {
+                if (onReloadGroups != null) {
+                    Platform.runLater(() -> onReloadGroups.accept(null));
+                }
+            });
+
             socket.connect();
 
         } catch (URISyntaxException e) {
@@ -312,6 +396,91 @@ public class SocketService {
         socket.emit("call:ice", obj);
     }
 
+    // ==================== GROUP EMIT METHODS ====================
+    public void joinGroup(String groupId) {
+        if (socket == null || !socket.connected()) return;
+
+        JSONObject obj = new JSONObject();
+        try {
+            obj.put("groupId", groupId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        socket.emit("join-group", obj);
+    }
+
+    public void leaveGroup(String groupId) {
+        if (socket == null || !socket.connected()) return;
+
+        JSONObject obj = new JSONObject();
+        try {
+            obj.put("groupId", groupId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        socket.emit("leave-group", obj);
+    }
+
+    public void sendGroupMessage(String groupId, String content) {
+        if (socket == null || !socket.connected()) {
+            System.out.println("Chưa kết nối socket");
+            return;
+        }
+
+        JSONObject payload = new JSONObject();
+        try {
+            payload.put("groupId", groupId);
+            payload.put("content", content);
+            payload.put("replyTo", JSONObject.NULL);
+            payload.put("fileUrl", JSONObject.NULL);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        socket.emit("send-group-message", payload, (Ack) args -> {
+            if (args.length > 0) {
+                System.out.println("Server phản hồi group message: " + args[0].toString());
+            }
+        });
+    }
+
+    public void emitGroupTypingStart(String groupId) {
+        if (socket == null || !socket.connected()) return;
+
+        JSONObject obj = new JSONObject();
+        try {
+            obj.put("groupId", groupId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        socket.emit("group-typing-start", obj);
+    }
+
+    public void emitGroupTypingStop(String groupId) {
+        if (socket == null || !socket.connected()) return;
+
+        JSONObject obj = new JSONObject();
+        try {
+            obj.put("groupId", groupId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        socket.emit("group-typing-stop", obj);
+    }
+
+    public void emitSeenGroupMessage(String messageId, String groupId) {
+        if (socket == null || !socket.connected()) return;
+
+        JSONObject obj = new JSONObject();
+        try {
+            obj.put("messageId", messageId);
+            obj.put("groupId", groupId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        socket.emit("seen-group-message", obj);
+    }
+
     // ================= SETTERS =================
 
     public void setOnNewMessage(Consumer<Message> callback) {
@@ -352,6 +521,34 @@ public class SocketService {
 
     public void setOnIceCandidate(Consumer<JsonObject> callback) {
         this.onIceCandidate = callback;
+    }
+
+    public void setOnNewGroupMessage(Consumer<GroupMessage> callback) {
+        this.onNewGroupMessage = callback;
+    }
+
+    public void setOnGroupTypingStart(Consumer<String> callback) {
+        this.onGroupTypingStart = callback;
+    }
+
+    public void setOnGroupTypingStop(Consumer<String> callback) {
+        this.onGroupTypingStop = callback;
+    }
+
+    public void setOnGroupMessageSeen(Consumer<JsonObject> callback) {
+        this.onGroupMessageSeen = callback;
+    }
+
+    public void setOnGroupCreated(Consumer<JsonObject> callback) {
+        this.onGroupCreated = callback;
+    }
+
+    public void setOnGroupDeleted(Consumer<JsonObject> callback) {
+        this.onGroupDeleted = callback;
+    }
+
+    public void setOnReloadGroups(Consumer<Void> callback) {
+        this.onReloadGroups = callback;
     }
 
     // ================= GETTERS =================

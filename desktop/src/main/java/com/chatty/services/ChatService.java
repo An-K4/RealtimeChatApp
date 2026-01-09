@@ -3,6 +3,7 @@ package com.chatty.services;
 import com.chatty.models.Message;
 import com.chatty.models.User;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -16,10 +17,16 @@ import java.util.List;
 public class ChatService {
     private final ApiService apiService;
     private final SocketService socketService;
+    private final Gson gson;
 
     public ChatService(SocketService socketService) {
         this.apiService = new ApiService();
         this.socketService = socketService;
+
+        // Dùng GsonBuilder để đăng ký deserializer
+        this.gson = new GsonBuilder()
+                .registerTypeAdapter(Message.class, new MessageDeserializer())
+                .create();
     }
 
     public List<User> getUsers() throws IOException {
@@ -29,7 +36,6 @@ public class ChatService {
             if(response != null && response.has("users")){
                 JsonArray userArray = response.getAsJsonArray("users");
 
-                Gson gson = new Gson();
                 Type listType = new TypeToken<List<User>>(){}.getType();
                 System.out.println(userArray);
                 return gson.fromJson(userArray, listType);
@@ -44,12 +50,12 @@ public class ChatService {
 
     public List<User> searchUser(String searchTerm) throws IOException {
         try {
-            String endpoint = "/users/search?username=" + searchTerm;
+            String endpoint = "/users/search?keyword=" + searchTerm;
             JsonObject response = apiService.get(endpoint, JsonObject.class);
 
             if (response != null && response.has("users")){
                 JsonArray userArray = response.getAsJsonArray("users");
-                Gson gson = new Gson();
+
                 Type listType = new TypeToken<List<User>>(){}.getType();
                 return gson.fromJson(userArray, listType);
             }
@@ -68,7 +74,6 @@ public class ChatService {
             if(response != null && response.has("messages")){
                 JsonArray messageArray = response.getAsJsonArray("messages");
 
-                Gson gson = new Gson();
                 Type listType = new TypeToken<List<Message>>(){}.getType();
                 return gson.fromJson(messageArray, listType);
             }
@@ -85,13 +90,23 @@ public class ChatService {
             return null;
         }
 
+        // 1. Tạo tin nhắn mới
         Message localMsg = new Message();
         localMsg.set_id(String.valueOf(System.currentTimeMillis()));
-        localMsg.setSenderId(senderId);
+
+        // 2. Tạo một đối tượng User cho người gửi
+        User senderUser = new User();
+        senderUser.set_id(senderId); // Gán ID cho đối tượng User
+
+        // 3. Gán cả đối tượng User vào tin nhắn
+        localMsg.setSender(senderUser);
+
+        // 4. Gán các thông tin còn lại
         localMsg.setReceiverId(receiverId);
         localMsg.setContent(content);
         localMsg.setCreatedAt(Instant.now().toString());
 
+        // 5. Gửi qua socket
         socketService.sendMessage(receiverId, content);
 
         return localMsg;

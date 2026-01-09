@@ -92,6 +92,65 @@ public class ApiService {
         }
     }
 
+    public <T> T put(String endpoint, Object body, Class<T> responseClass) throws IOException {
+        String json = gson.toJson(body);
+        RequestBody requestBody = RequestBody.create(json, MediaType.get("application/json; charset=utf-8"));
+
+        Request.Builder requestBuilder = new Request.Builder()
+                .url(BASE_URL + endpoint)
+                .put(requestBody)
+                .addHeader("Content-Type", "application/json");
+
+        // Thêm Authorization header nếu đã có token
+        if (authToken != null) {
+            requestBuilder.addHeader("Authorization", "Bearer " + authToken);
+        }
+
+        Request request = requestBuilder.build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("PUT request failed: " + response + " - " + errorBody);
+            }
+
+            String responseJson = response.body() != null ? response.body().string() : "";
+            if (responseClass == String.class) {
+                return (T) responseJson;
+            }
+            return gson.fromJson(responseJson, responseClass);
+        }
+    }
+
+    public <T> T delete(String endpoint, Class<T> responseClass) throws IOException {
+        Request.Builder requestBuilder = new Request.Builder()
+                .url(BASE_URL + endpoint)
+                .delete();
+
+        // Thêm Authorization header nếu đã có token
+        if (authToken != null) {
+            requestBuilder.addHeader("Authorization", "Bearer " + authToken);
+        }
+
+        Request request = requestBuilder.build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                throw new IOException("DELETE request failed: " + response + " - " + errorBody);
+            }
+
+            String responseJson = response.body() != null ? response.body().string() : "";
+            if (responseJson.isEmpty() || responseClass == Void.class) {
+                return null; // Hoặc throw nếu bạn muốn bắt buộc phải có response body
+            }
+            if (responseClass == String.class) {
+                return (T) responseJson;
+            }
+            return gson.fromJson(responseJson, responseClass);
+        }
+    }
+
     public <T> T postWithCookies(String endpoint, Object body, Class<T> responseClass, String cookie) throws IOException {
         String json = gson.toJson(body);
         RequestBody requestBody = RequestBody.create(json, MediaType.get("application/json; charset=utf-8"));
