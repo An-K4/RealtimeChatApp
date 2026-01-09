@@ -1,4 +1,5 @@
 import authService from '../../services/auth.service.js';
+import { config } from '../../config/index.js';
 
 // DOM Elements
 const loginForm = document.getElementById('loginForm');
@@ -9,6 +10,44 @@ const signupFormDiv = document.getElementById('signup-form');
 const loginError = document.getElementById('login-error');
 const signupError = document.getElementById('signup-error');
 const signupSuccess = document.getElementById('signup-success');
+const googleLoginBtn = document.getElementById('google-login-btn');
+const googleSignupBtn = document.getElementById('google-signup-btn');
+const switchToSignup = document.getElementById('switch-to-signup');
+const switchToLogin = document.getElementById('switch-to-login');
+
+function startGoogleOAuth(buttonEl) {
+  if (buttonEl) {
+    buttonEl.disabled = true;
+    buttonEl.dataset.originalText = buttonEl.textContent;
+    buttonEl.textContent = 'Đang chuyển tới Google...';
+  }
+  // Must be a top-level navigation (not fetch) to show Google's auth screen
+  window.location.href = `${config.apiBaseUrl}/auth/google`;
+}
+
+googleLoginBtn?.addEventListener('click', (e) => {
+  e.preventDefault();
+  startGoogleOAuth(googleLoginBtn);
+});
+
+googleSignupBtn?.addEventListener('click', (e) => {
+  e.preventDefault();
+  startGoogleOAuth(googleSignupBtn);
+});
+
+function activateTab(tabName) {
+  document.querySelector(`.tab-btn[data-tab="${tabName}"]`)?.click();
+}
+
+switchToSignup?.addEventListener('click', (e) => {
+  e.preventDefault();
+  activateTab('signup');
+});
+
+switchToLogin?.addEventListener('click', (e) => {
+  e.preventDefault();
+  activateTab('login');
+});
 
 // Tab switching
 tabButtons.forEach((btn) => {
@@ -17,16 +56,20 @@ tabButtons.forEach((btn) => {
 
     tabButtons.forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
+    const errorMessageLoginForm = loginFormDiv.querySelector('.error-message');
+    const errorMessageSignupForm = signupFormDiv.querySelector('.error-message');
 
     if (tab === 'login') {
       loginFormDiv.classList.add('active');
       signupFormDiv.classList.remove('active');
+      errorMessageLoginForm.classList.add('hidden');
       loginError.textContent = '';
       signupError.textContent = '';
       signupSuccess.textContent = '';
     } else {
       loginFormDiv.classList.remove('active');
       signupFormDiv.classList.add('active');
+      errorMessageSignupForm.classList.add('hidden');
       loginError.textContent = '';
       signupError.textContent = '';
       signupSuccess.textContent = '';
@@ -55,6 +98,7 @@ loginForm.addEventListener('submit', async (e) => {
     // Redirect to chat page
     window.location.href = '/chat.html';
   } else {
+    loginError.classList.remove('hidden');
     loginError.textContent = result.message;
   }
 });
@@ -89,6 +133,7 @@ signupForm.addEventListener('submit', async (e) => {
       document.getElementById('login-username').value = username;
     }, 1000);
   } else {
+    signupError.classList.remove('hidden');
     signupError.textContent = result.message;
   }
 });

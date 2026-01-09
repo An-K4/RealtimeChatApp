@@ -25,15 +25,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+
     if (error.response?.status === 401) {
       // Token không hợp lệ hoặc hết hạn
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      window.location.href = '/index.html';
 
       // Chỉ reload nếu đang ở trang chat (giữ logic cũ)
-      if (document.getElementById('chat-page')?.style.display !== 'none') {
-        window.location.reload();
-      }
+      // if (document.getElementById('chat-page')?.style.display !== 'none') {
+      //   window.location.reload();x
+      // }
     }
     return Promise.reject(error);
   }

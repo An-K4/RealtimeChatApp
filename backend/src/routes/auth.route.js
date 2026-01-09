@@ -10,6 +10,8 @@ router.post('/login', validate.loginValidate, controller.login);
 router.post('/logout', authMiddleware, controller.logout);
 router.post('/signup', validate.signupValidate, controller.signup);
 router.get('/me', authMiddleware, controller.me);
+router.get('/google', controller.googleOAuthStart);
+router.get('/google/callback', controller.googleOAuthCallback);
 
 
 

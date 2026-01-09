@@ -4,23 +4,23 @@ const User = require("../../models/user.model");
 
 module.exports = async (socket, next) => {
   try {
-    const token = socket.handshake.auth.token;
+    const token = socket.handshake?.auth?.token;
     if (!token) {
-      next(new Error("Vui lòng đăng nhập để tiếp tục"));
+      return next(new Error("Vui lòng đăng nhập để tiếp tục"));
     }
     const blacklistedToken = await BlacklistedToken.findOne({
       token
     });
 
     if (blacklistedToken) {
-      next(new Error("Token đã bị thu hồi"));
+      return next(new Error("Token đã bị thu hồi"));
     }
     const payload = jwt.verify(token, process.env.JWT_SECRET_KEY);
 
     const user = await User.findById(payload.sub).select('-password -createdAt -updatedAt -__v');
 
     if (!user) {
-      next(new Error("Vui lòng đăng nhập để tiếp tục"));
+      return next(new Error("Vui lòng đăng nhập để tiếp tục"));
     }
     socket.user = user;
     next();

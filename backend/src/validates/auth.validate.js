@@ -3,8 +3,8 @@ module.exports.loginValidate = (req, res, next) => {
   if(!username || !password) {
     return res.status(400).json({message: "Vui lòng nhập tên đăng nhập và mật khẩu"});
   }
-  if(username.length < 3 || username.length > 16) {
-    return res.status(400).json({message: "Tên đăng nhập phải có từ 3 đến 16 ký tự"});
+  if(username.length < 3) {
+    return res.status(400).json({message: "Tên đăng nhập phải có từ 3 ký tự trở lên"});
   }
   if(password.length < 6) {
     return res.status(400).json({message: "Mật khẩu phải có ít nhất 6 ký tự"});

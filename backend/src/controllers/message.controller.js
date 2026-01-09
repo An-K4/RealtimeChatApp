@@ -62,7 +62,7 @@ module.exports.getUsers = async (req, res) => {
                 {
                   $and: [
                     { $eq: ['$receiverId', userObjectId] },  // Tin gửi cho mình
-                    { $not: { $in: [userObjectId, '$seenBy'] } }  // Mình chưa xem
+                    { $not: { $in: [userObjectId, { $ifNull: ['$seenBy', []] }] } }  // Mình chưa xem
                   ]
                 },
                 1,

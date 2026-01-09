@@ -25,9 +25,10 @@ const messageSchema = new mongoose.Schema(
     attachments: {
       type: String
     },
-    seenBy: [
-      { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
-    ]
+    seenBy: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+      default: [],
+    },
   },
   { timestamps: true }
 );

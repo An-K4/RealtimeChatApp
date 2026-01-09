@@ -1,4 +1,4 @@
-import api from './http.js';
+import api from './api.js';
 
 export const authAPI = {
   login: (username, password) => api.post('/auth/login', { username, password }),

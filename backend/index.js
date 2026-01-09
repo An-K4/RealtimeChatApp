@@ -4,11 +4,15 @@ const cors = require("cors")
 const initSocket = require("./src/socket.io/index");
 
 const databaseConfig = require("./src/configs/database.config");
+const passport = require("passport");
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const authController = require("./src/controllers/auth.controller");
 
 const UserRouter = require("./src/routes/index.route")
 const {
   createServer
 } = require("http");
+const User = require("./src/models/user.model");
 
 const app = express();
 
@@ -26,7 +30,7 @@ app.use(cors({
       // nằm trong allow thì được phép
       if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
         return callback(null, true);
-      }   
+      }
       return callback(new Error("Not allowed by CORS"));
     },
     // cho phép cookie/auth gửi kèm (cookie, session, jwt trong cookie)
@@ -43,6 +47,21 @@ app.use(express.urlencoded({
   extended: false
 }));
 app.use(express.json());
+
+app.use(passport.initialize());
+
+// config middleware google oauth
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: process.env.GOOGLE_REDIRECT_URI,
+    },
+    authController.googleVerify
+  )
+);
+
 
 
 databaseConfig.connect();

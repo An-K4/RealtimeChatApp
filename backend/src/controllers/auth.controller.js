@@ -3,6 +3,7 @@ const hashingService = require("../services/hasing.service");
 const generateTokenService = require("../services/generateToken.service");
 const BlacklistedToken = require("../models/blacklistedToken.model");
 const jwt = require("jsonwebtoken");
+const passport = require("passport");
 // login
 module.exports.login = async (req, res) => {
   try {
@@ -118,3 +119,80 @@ module.exports.me = async (req, res) => {
     return res.status(500).json({ message: "Lỗi server khi lấy thông tin người dùng" });
   }
 }
+
+module.exports.googleAuth = async (req, res) => {
+  try {
+    console.log("Google auth callback hit");
+  } catch (error) {
+    
+  }
+};
+
+// ===== Google OAuth (Passport) =====
+// Verify callback used by GoogleStrategy
+module.exports.googleVerify = async (accessToken, refreshToken, profile, done) => {
+  try {
+    const email = profile?.emails?.[0]?.value;
+    const fullName = profile?.displayName || "Google User";
+    const avatar = profile?.photos?.[0]?.value;
+
+    if (!email) {
+      return done(new Error("Google profile is missing email"));
+    }
+
+    let user = await User.findOne({ email });
+
+    // Create user if not exists (your schema requires username/password/fullName/email)
+    if (!user) {
+      const emailPrefix = email.split("@")[0] || "user";
+
+      let username = emailPrefix;
+      const existingUsername = await User.findOne({ username });
+      if (existingUsername) {
+        username = `${emailPrefix}_${Date.now()}`;
+      }
+
+      const randomPassword = `${profile?.id || "google"}_${Date.now()}`;
+      const hashedPassword = hashingService.hash(randomPassword);
+
+      user = await User.create({
+        username,
+        password: hashedPassword,
+        fullName,
+        email,
+        avatar,
+      });
+    }
+
+    return done(null, user);
+  } catch (error) {
+    return done(error);
+  }
+};
+
+// GET /auth/google
+module.exports.googleOAuthStart = (req, res, next) => {
+  return passport.authenticate("google", {
+    scope: ["profile", "email"],
+    session: false,
+  })(req, res, next);
+};
+
+// GET /auth/google/callback
+module.exports.googleOAuthCallback = (req, res, next) => {
+  return passport.authenticate(
+    "google",
+    { session: false, failureRedirect: "/" },
+    (err, user) => {
+      if (err) return next(err);
+      if (!user) return res.redirect("/");
+
+      const token = generateTokenService.generateToken(user);
+      const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+
+      const redirectUrl = new URL("/chat.html", frontendBaseUrl);
+      redirectUrl.searchParams.set("token", token);
+      return res.redirect(redirectUrl.toString());
+    }
+  )(req, res, next);
+};

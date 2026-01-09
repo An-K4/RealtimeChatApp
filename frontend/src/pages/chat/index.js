@@ -688,6 +688,17 @@ async function handleAvatarFileChange(event) {
 
 // Initialize chat page
 async function init() {
+  // Support OAuth redirect: /chat.html?token=...
+  const params = new URLSearchParams(window.location.search);
+  const tokenFromUrl = params.get('token');
+  if (tokenFromUrl) {
+    localStorage.setItem('token', tokenFromUrl);
+    params.delete('token');
+    const newQuery = params.toString();
+    const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}${window.location.hash || ''}`;
+    window.history.replaceState({}, document.title, newUrl);
+  }
+
   // Check authentication
   const user = await authService.checkAuth();
   if (!user) {
@@ -698,13 +709,18 @@ async function init() {
 
   renderProfile(user);
 
+  // Connect socket only after auth is confirmed
+  socket = createSocket();
+  setupSocketHandlers(socket);
+
   // Load users list
   await loadUsers();
 }
 
-const socket = createSocket();
+let socket;
 
-socket.on('receive-message', (message) => {
+function setupSocketHandlers(activeSocket) {
+  activeSocket.on('receive-message', (message) => {
   const mess = document.createElement('div');
   mess.classList.add('message', 'received');
 
@@ -739,23 +755,23 @@ socket.on('receive-message', (message) => {
 
   // Update user list: lastMessage và unreadCount
   updateUserItemOnNewMessage(senderId, messageContent);
-});
+  });
 
-socket.on('connect_error', (err) => {
-  console.log('Auth error:', err.message);
-});
+  activeSocket.on('connect_error', (err) => {
+    console.log('Auth error:', err.message);
+  });
 
-socket.on('connect', () => {
-  console.log('Connected to server');
-  // thông báo tôi đang on
-  socket.emit('entering');
-});
+  activeSocket.on('connect', () => {
+    console.log('Connected to server');
+    // thông báo tôi đang on
+    activeSocket.emit('entering');
+  });
 
-socket.on('disconnect', () => {
-  console.log('Disconnected from server');
-  // thông báo tôi đang off
-  socket.emit('leaving');
-});
+  activeSocket.on('disconnect', () => {
+    console.log('Disconnected from server');
+    // thông báo tôi đang off
+    activeSocket.emit('leaving');
+  });
 
 // Update online status for a specific user in the UI
 function updateUserOnlineStatus(userId, isOnline) {
@@ -854,39 +870,39 @@ function updateUserItemLastMessage(userId, messageContent, isMine = false) {
   }
 }
 
-socket.on('noti-online', (data) => {
-  updateUserOnlineStatus(data?.id, true);
-});
+  activeSocket.on('noti-online', (data) => {
+    updateUserOnlineStatus(data?.id, true);
+  });
 
-socket.on('noti-offline', (data) => {
-  updateUserOnlineStatus(data?.id, false);
-});
+  activeSocket.on('noti-offline', (data) => {
+    updateUserOnlineStatus(data?.id, false);
+  });
 
-socket.on('noti-onlineList-toMe', (list) => {
-  if (!Array.isArray(list)) return;
-  list.forEach((id) => updateUserOnlineStatus(id, true));
-});
+  activeSocket.on('noti-onlineList-toMe', (list) => {
+    if (!Array.isArray(list)) return;
+    list.forEach((id) => updateUserOnlineStatus(id, true));
+  });
 
-socket.on('typing-start', (data) => {
-  const senderId = data?.senderId;
-  const senderName = data?.senderName;
-  if (!senderId || !chatService.selectedUserId) return;
+  activeSocket.on('typing-start', (data) => {
+    const senderId = data?.senderId;
+    const senderName = data?.senderName;
+    if (!senderId || !chatService.selectedUserId) return;
 
-  if (senderId.toString() === chatService.selectedUserId.toString()) {
-    showTypingIndicator(senderName);
-  }
-});
+    if (senderId.toString() === chatService.selectedUserId.toString()) {
+      showTypingIndicator(senderName);
+    }
+  });
 
-socket.on('typing-stop', (data) => {
-  const senderId = data?.senderId;
-  if (!senderId || !chatService.selectedUserId) return;
+  activeSocket.on('typing-stop', (data) => {
+    const senderId = data?.senderId;
+    if (!senderId || !chatService.selectedUserId) return;
 
-  if (senderId.toString() === chatService.selectedUserId.toString()) {
-    hideTypingIndicator();
-  }
-});
+    if (senderId.toString() === chatService.selectedUserId.toString()) {
+      hideTypingIndicator();
+    }
+  });
 
-socket.on('seen-message', (data) => {
+  activeSocket.on('seen-message', (data) => {
   const viewerId = data?.viewerId; // Người xem tin nhắn (người bên kia)
   const seenAt = data?.seenAt;
   
@@ -908,7 +924,8 @@ socket.on('seen-message', (data) => {
       applyStatusMetadata(statusDiv, 'Đã xem', 'Xem', seenAt || new Date());
     }
   }
-});
+  });
+}
 
 // Start
 init();
