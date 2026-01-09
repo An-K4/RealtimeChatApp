@@ -114,3 +114,25 @@ module.exports.getUsers = async (req, res) => {
     return res.status(500).json({message: "Lỗi server khi lấy danh sách người dùng"});
   }
 }
+
+module.exports.upload = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const fileUrl = req.body.file;
+    if (!fileUrl) {
+      return res.status(400).json({
+        message: "Bạn chưa upload file"
+      })
+    }
+
+    return res.status(200).json({
+      message: "file uploaded",
+      url: fileUrl
+    })
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Lỗi server khi upload file"
+    })
+  }
+}

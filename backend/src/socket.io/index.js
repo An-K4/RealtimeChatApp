@@ -37,7 +37,6 @@ module.exports = (httpServer) => {
 
   io.on("connection", (socket) => {
     const currentUserId = socket.user._id.toString();
-    console.log("A user connected", socket.id, "User ID:", currentUserId);
     // Join room với userId dạng string để nhận tin nhắn
     socket.join(currentUserId);
 

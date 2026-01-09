@@ -1,13 +1,15 @@
 import authService from '../../services/auth.service.js';
 import chatService from '../../services/chat.service.js';
 import { userAPI } from '../../api/user.api.js';
+import { groupAPI } from '../../api/group.api.js';
 import { createSocket } from '../../realtime/socket.js';
 import { escapeHtml } from '../../utils/escapeHtml.js';
+import { initGroupUI } from './group.module.js';
 
 // DOM Elements
 const logoutBtn = document.getElementById('logout-btn');
 const usersList = document.getElementById('users-list');
-const searchUserInput = document.getElementById('search-user-input');
+const searchInput = document.getElementById('search-input');
 const noChatSelected = document.getElementById('no-chat-selected');
 const chatMessagesContainer = document.getElementById('chat-messages-container');
 const chatWithName = document.getElementById('chat-with-name');
@@ -48,11 +50,15 @@ const onlineUsers = new Map();
 
 // Typing timeout reference
 let typingTimeout = null;
+let groupTypingTimeout = null;
 const TYPING_TIMEOUT = 1000; // 1 giây
 
 // Search debounce timeout
 let searchTimeout = null;
 const SEARCH_DEBOUNCE = 500; // 500ms
+
+// Current active tab
+let currentActiveTab = 'users';
 
 if (profileEditForm) {
   setProfileFormDisabled(true);
@@ -88,9 +94,9 @@ logoutBtn.addEventListener('click', async () => {
   window.location.href = '/index.html';
 });
 
-// Search user handler
-if (searchUserInput) {
-  searchUserInput.addEventListener('input', async (e) => {
+// Search handler - works for both users and groups
+if (searchInput) {
+  searchInput.addEventListener('input', async (e) => {
     const searchTerm = e.target.value.trim();
     
     // Clear previous timeout
@@ -101,19 +107,48 @@ if (searchUserInput) {
     // Debounce search
     searchTimeout = setTimeout(async () => {
       if (searchTerm === '') {
-        // Nếu không có search term, load tất cả users
-        await loadUsers();
+        // Nếu không có search term, load tất cả items của active tab
+        if (currentActiveTab === 'users') {
+          await loadUsers();
+        } else if (currentActiveTab === 'groups') {
+          await groupUI.loadGroups();
+        }
       } else {
-        // Gọi API search
-        usersList.innerHTML = '<div class="loading">Đang tìm kiếm...</div>';
-        
-        try {
-          const response = await userAPI.searchUsers(searchTerm);
-          const users = response.data?.users || [];
-          renderUsers(users);
-        } catch (error) {
-          const message = error.response?.data?.message || 'Lỗi khi tìm kiếm';
-          usersList.innerHTML = `<div class="error-message">${message}</div>`;
+        // Gọi API search dựa trên tab hiện tại
+        if (currentActiveTab === 'users') {
+          usersList.innerHTML = '<div class="loading">Đang tìm kiếm...</div>';
+          try {
+            const response = await userAPI.searchs(searchTerm);
+            const users = response.data?.users || [];
+            renderUsers(users);
+          } catch (error) {
+            const message = error.response?.data?.message || 'Lỗi khi tìm kiếm';
+            usersList.innerHTML = `<div class="error-message">${message}</div>`;
+          }
+        } else if (currentActiveTab === 'groups') {
+          // Filter groups based on search
+          const groupsList = document.getElementById('groups-list');
+          const searchInput = document.getElementById('search-input');
+          
+          // Trigger search in groupUI by simulating input event
+          // We'll search through allGroups in the groupUI
+          const allGroups = groupUI.getAllGroups ? groupUI.getAllGroups() : [];
+          const filteredGroups = allGroups.filter(group =>
+            group.name.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+          
+          if (filteredGroups.length === 0) {
+            groupsList.innerHTML = `
+              <button id="create-group-btn" class="btn btn-primary btn-create-group">+ Tạo nhóm</button>
+              <div class="empty-state">Không tìm thấy nhóm nào</div>
+            `;
+            const btn = document.getElementById('create-group-btn');
+            if (btn) {
+              btn.addEventListener('click', () => groupUI.openGroupModal());
+            }
+          } else {
+            groupUI.renderGroupsDirectly(filteredGroups);
+          }
         }
       }
     }, SEARCH_DEBOUNCE);
@@ -222,6 +257,12 @@ async function selectUser(userId, userName) {
   noChatSelected.style.display = 'none';
   chatMessagesContainer.style.display = 'flex';
 
+  // Hide group menu for 1-on-1 chats
+  const groupMenuPanel = document.getElementById('group-menu-panel');
+  const toggleMenuBtn = document.getElementById('toggle-group-menu-btn');
+  if (groupMenuPanel) groupMenuPanel.style.display = 'none';
+  if (toggleMenuBtn) toggleMenuBtn.style.display = 'none';
+
   // Update chat header with name and online status
   if (chatNameText) {
     chatNameText.textContent = userName;
@@ -325,9 +366,10 @@ function normalizeDate(value) {
 }
 
 function formatShortTime(date) {
-  return normalizeDate(date).toLocaleTimeString('vi-VN', {
+  return normalizeDate(date).toLocaleTimeString('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false
   });
 }
 
@@ -475,6 +517,23 @@ messageInput.addEventListener('keypress', (e) => {
 
 // Typing indicator handler
 messageInput.addEventListener('input', () => {
+  const currentGroupId = groupUI.getCurrentGroupId();
+  
+  // Handle group typing
+  if (currentGroupId) {
+    socket.emit('group-typing-start', { groupId: currentGroupId });
+    
+    if (groupTypingTimeout) {
+      clearTimeout(groupTypingTimeout);
+    }
+    
+    groupTypingTimeout = setTimeout(() => {
+      socket.emit('group-typing-stop', { groupId: currentGroupId });
+    }, TYPING_TIMEOUT);
+    return;
+  }
+
+  // Handle user typing (original logic)
   if (!chatService.selectedUserId) return;
 
   // Emit typing-start event
@@ -522,7 +581,19 @@ function hideTypingIndicator() {
 // Send message function
 async function sendMessage() {
   const message = messageInput.value.trim();
-  if (!message || !chatService.selectedUserId) return;
+  if (!message) return;
+
+  // Check if sending group message
+  const currentGroupId = groupUI.getCurrentGroupId();
+  if (currentGroupId) {
+    // Send group message
+    groupUI.sendGroupMessage(message);
+    messageInput.value = '';
+    return;
+  }
+
+  // Send user message (original logic)
+  if (!chatService.selectedUserId) return;
 
   const currentUser = authService.getUser();
   const currentUserId = currentUser?._id;
@@ -668,7 +739,7 @@ async function handleAvatarFileChange(event) {
 
   try {
     const response = await userAPI.uploadAvatar(file);
-    const avatarUrl = response.data?.user?.avatar || response.data?.avatar;
+    const avatarUrl = response?.data?.avatarUrl;
 
     if (avatarUrl) {
       const updatedUser = authService.updateStoredUser({ avatar: avatarUrl });
@@ -907,6 +978,45 @@ socket.on('seen-message', (data) => {
       applyStatusMetadata(statusDiv, 'Đã xem', 'Xem', seenAt || new Date());
     }
   }
+});
+
+// Initialize group UI
+const groupUI = initGroupUI(socket);
+
+// Init current user for group UI
+await groupUI.initCurrentUser();
+
+// Setup sidebar tabs
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabContents = document.querySelectorAll('.tab-content');
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    
+    // Update current active tab
+    currentActiveTab = tab;
+    
+    // Clear search input when switching tabs
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    
+    // Update active button
+    tabBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // Update active content
+    tabContents.forEach(content => content.style.display = 'none');
+    document.getElementById(`${tab}-list`).style.display = 'block';
+    
+    // Load groups if switching to groups tab
+    if (tab === 'groups') {
+      groupUI.loadGroups();
+    } else if (tab === 'users') {
+      loadUsers();
+    }
+  });
 });
 
 // Start

@@ -4,20 +4,21 @@ const Group = require('../../models/group.model');
 module.exports = (io, socket) => {
   socket.on("send-group-message", async (data, updateStatus) => {
     try {
-      console.log("send message");
-      const { groupId, content } = data;
+      const { groupId, content, replyTo, fileUrl } = data;
       const senderId = socket.user._id;
 
       // Validate
       if (!groupId || !content.trim()) {
-        return updateStatus({ success: false, message: "Invalid data" });
+        return updateStatus({ success: false, message: "Dữ liệu không hợp lệ" });
       }
 
       // Lưu DB
       const message = await Message.create({
         senderId,
         groupId,
-        content: content.trim()
+        content: content.trim(),
+        replyTo,
+        attachments: fileUrl || null
       });
 
       // Populate sender info
@@ -31,8 +32,9 @@ module.exports = (io, socket) => {
         senderId: message.senderId,
         groupId: groupId,
         content: message.content,
-        createdAt: message.createdAt,
-        seenBy: []
+        replyTo,
+        attachments: message.attachments,
+        createdAt: message.createdAt
       });
 
     } catch (error) {
@@ -86,13 +88,33 @@ module.exports = (io, socket) => {
     });
   });
 
-  socket.on("join-group", (groupId) => {
+  socket.on("join-group", (data) => {
+    const groupId = typeof data === 'string' ? data : data.groupId;
     socket.join(`group-${groupId}`);
-    // console.log(`User ${socket.user._id} joined group ${groupId}`);
   });
 
-  socket.on("leave-group", (groupId) => {
+  socket.on("leave-group", (data) => {
+      const groupId = typeof data === 'string' ? data : data.groupId;
       socket.leave(`group-${groupId}`);
-      // console.log(`User ${socket.user._id} left group ${groupId}`);
+  });
+
+  socket.on("group-created", (data) => {
+    const { groupId, members } = data;
+    if (!groupId || !members) return;
+
+    // Broadcast to all members that a new group was created
+    members.forEach(memberId => {
+      io.to(`${memberId}`).emit("reload-groups");
+    });
+  });
+
+  socket.on("group-deleted", (data) => {
+    const { groupId, members } = data;
+    if (!groupId || !members) return;
+
+    // Broadcast to all members that group was deleted
+    members.forEach(memberId => {
+      io.to(`${memberId}`).emit("reload-groups");
+    });
   });
 };
