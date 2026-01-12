@@ -30,8 +30,6 @@
             <version>${javafx.version}</version>
         </dependency>
 
-
-
         <!-- HTTP Client -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
@@ -52,8 +50,6 @@
             <artifactId>socket.io-client</artifactId>
             <version>2.1.0</version>
         </dependency>
-
-
 
         <!-- Icons (Material Icons alternative) -->
         <dependency>

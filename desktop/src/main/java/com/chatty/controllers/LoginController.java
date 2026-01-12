@@ -2,6 +2,7 @@ package com.chatty.controllers;
 
 import com.chatty.models.User;
 import com.chatty.services.AuthService;
+import com.chatty.services.ThemeService;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -21,7 +22,7 @@ public class LoginController {
     }
 
     public void show(Stage primaryStage) {
-        primaryStage.setTitle("Kma Chatty - Login");
+        primaryStage.setTitle("Kma Chatty - Đăng nhập");
         primaryStage.setResizable(false);
         primaryStage.centerOnScreen();
 
@@ -50,7 +51,7 @@ public class LoginController {
         formContainer.setPrefWidth(350);
 
         // Username field
-        Label usernameLabel = new Label("Username");
+        Label usernameLabel = new Label("Tên đăng nhập");
         usernameLabel.getStyleClass().add("form-label");
         HBox usernameContainer = new HBox(10);
         usernameContainer.setAlignment(Pos.CENTER_LEFT);
@@ -59,13 +60,13 @@ public class LoginController {
         userIcon.setIconSize(20);
         userIcon.getStyleClass().add("input-icon");
         TextField usernameField = new TextField();
-        usernameField.setPromptText("Username");
+        usernameField.setPromptText("nguyen_van_a");
         usernameField.getStyleClass().add("text-input");
         usernameField.setPrefWidth(310);
         usernameContainer.getChildren().addAll(userIcon, usernameField);
 
         // Password field
-        Label passwordLabel = new Label("Password");
+        Label passwordLabel = new Label("Mật khẩu");
         passwordLabel.getStyleClass().add("form-label");
         HBox passwordContainer = new HBox(10);
         passwordContainer.setAlignment(Pos.CENTER_LEFT);
@@ -110,15 +111,16 @@ public class LoginController {
         passwordContainer.getChildren().addAll(lockIcon, passwordField, showPasswordBtn);
 
         // Login button
-        Button loginButton = new Button("Sign in");
+        Button loginButton = new Button("Đăng nhập");
         loginButton.getStyleClass().add("primary-button");
         loginButton.setPrefWidth(350);
         
         // Sign up link
         HBox signupLinkContainer = new HBox();
         signupLinkContainer.setAlignment(Pos.CENTER);
-        Label signupLabel = new Label("Don't have an account? ");
-        Hyperlink signupLink = new Hyperlink("Create account");
+        Label signupLabel = new Label("Bạn không có tài khoản? ");
+        signupLabel.getStyleClass().add("login-subtitle");
+        Hyperlink signupLink = new Hyperlink("Đăng ký");
         signupLink.getStyleClass().add("link");
         signupLinkContainer.getChildren().addAll(signupLabel, signupLink);
 
@@ -130,9 +132,9 @@ public class LoginController {
         VBox rightPane = new VBox();
         rightPane.setPrefWidth(550);
         rightPane.getStyleClass().add("login-pattern-pane");
-        Label patternTitle = new Label("Welcome back!");
+        Label patternTitle = new Label("Chào mừng trở lại!");
         patternTitle.getStyleClass().add("pattern-title");
-        Label patternSubtitle = new Label("Sign in to continue your conversations and catch up with your messages.");
+        Label patternSubtitle = new Label("Đăng nhập để tiếp tục trò chuyện và xem lại tin nhắn của bạn.");
         patternSubtitle.getStyleClass().add("pattern-subtitle");
         rightPane.setAlignment(Pos.CENTER);
         rightPane.setSpacing(20);
@@ -146,13 +148,13 @@ public class LoginController {
             String password = invisiblePasswordField.isVisible() ? invisiblePasswordField.getText() : visiblePasswordField.getText();
             
             if (username.isEmpty() || password.isEmpty()) {
-                showAlert("Error", "Please fill in all fields", Alert.AlertType.ERROR);
+                showAlert("Lỗi", "Vui lòng điền đầy đủ thông tin", Alert.AlertType.ERROR);
                 return;
             }
 
             signupLink.setDisable(true);
             loginButton.setDisable(true);
-            loginButton.setText("Loading...");
+            loginButton.setText("Đang tải...");
             mainContainer.requestFocus();
             
             new Thread(() -> {
@@ -163,10 +165,10 @@ public class LoginController {
                     });
                 } catch (Exception ex) {
                     Platform.runLater(() -> {
-                        showAlert("Login Failed", ex.getMessage(), Alert.AlertType.ERROR);
+                        showAlert("Đăng nhập thất bại", ex.getMessage(), Alert.AlertType.ERROR);
                         signupLink.setDisable(false);
                         loginButton.setDisable(false);
-                        loginButton.setText("Sign in");
+                        loginButton.setText("Đăng nhập");
                     });
                 }
             }).start();
@@ -190,6 +192,7 @@ public class LoginController {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
+        ThemeService.styleDialog(alert);
         alert.showAndWait();
     }
 }

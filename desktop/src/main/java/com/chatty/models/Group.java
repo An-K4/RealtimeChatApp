@@ -27,8 +27,7 @@ public class Group {
         private String role; // "admin" hoặc "member"
         private String joinedAt;
 
-        public GroupMember() {
-        }
+        public GroupMember() {}
 
         public User getUser() {
             return user;
@@ -98,8 +97,7 @@ public class Group {
         }
     }
 
-    public Group() {
-    }
+    public Group() {}
 
     // Update status preview (giống User model)
     public void updateStatusPreview() {
@@ -129,7 +127,7 @@ public class Group {
 
     // Check if current user is owner
     public boolean isUserOwner(String userId) {
-        return owner != null && owner.get_id() != null && owner.get_id().equals(userId);
+        return owner != null && owner.equals(userId);
     }
 
     // Getters and Setters

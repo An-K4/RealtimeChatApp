@@ -1,6 +1,7 @@
 package com.chatty;
 
 import com.chatty.models.User;
+import com.chatty.services.ThemeService;
 import javafx.application.Application;
 import javafx.stage.Stage;
 import com.chatty.controllers.LoginController;
@@ -10,8 +11,13 @@ public class ChattyApp extends Application {
     @Override
     public void start(Stage primaryStage) {
         AuthService authService = new AuthService();
-
         User user = authService.checkAuth();
+
+        primaryStage.sceneProperty().addListener((observable, oldScene, newScene) -> {
+            if (newScene != null) {
+                ThemeService.install(newScene);
+            }
+        });
 
         // Check if user is already authenticated
         if (user != null) {

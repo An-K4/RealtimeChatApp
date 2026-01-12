@@ -38,8 +38,7 @@ public class GroupService {
 
             if (response != null && response.has("groups")) {
                 JsonArray groupArray = response.getAsJsonArray("groups");
-                Type listType = new TypeToken<List<Group>>() {
-                }.getType();
+                Type listType = new TypeToken<List<Group>>(){}.getType();
                 return gson.fromJson(groupArray, listType);
             }
 
@@ -52,10 +51,9 @@ public class GroupService {
 
     /**
      * Tạo nhóm mới
-     * 
-     * @param name        Tên nhóm
+     * @param name Tên nhóm
      * @param description Mô tả
-     * @param memberIds   Danh sách ID thành viên
+     * @param memberIds Danh sách ID thành viên
      */
     public Group createGroup(String name, String description, List<String> memberIds) throws IOException {
         try {
@@ -147,8 +145,7 @@ public class GroupService {
 
             if (response != null && response.has("messages")) {
                 JsonArray messageArray = response.getAsJsonArray("messages");
-                Type listType = new TypeToken<List<GroupMessage>>() {
-                }.getType();
+                Type listType = new TypeToken<List<GroupMessage>>(){}.getType();
                 return gson.fromJson(messageArray, listType);
             }
 
@@ -192,8 +189,7 @@ public class GroupService {
 
             if (response != null && response.has("members")) {
                 JsonArray memberArray = response.getAsJsonArray("members");
-                Type listType = new TypeToken<List<Group.GroupMember>>() {
-                }.getType();
+                Type listType = new TypeToken<List<Group.GroupMember>>(){}.getType();
                 return gson.fromJson(memberArray, listType);
             }
 

@@ -23,13 +23,12 @@ public class AuthService {
     }
 
     public User checkAuth() {
-        if (ApiService.authToken == null || ApiService.authToken.isEmpty())
-            return null;
+        if(ApiService.authToken == null || ApiService.authToken.isEmpty()) return  null;
 
         try {
             JsonObject response = apiService.get("/auth/me", JsonObject.class, null);
 
-            if (response != null && response.has("user")) {
+            if(response != null && response.has("user")){
                 Gson gson = new Gson();
                 User user = gson.fromJson(response.get("user"), User.class);
 
@@ -39,7 +38,7 @@ public class AuthService {
 
                 return user;
             }
-        } catch (Exception e) {
+        } catch (Exception e){
             System.out.println("Token không hợp lệ hoặc đã hết hạn");
             ApiService.authToken = null;
             this.currentUser = null;
@@ -55,7 +54,7 @@ public class AuthService {
 
         JsonObject loginResponse = apiService.post("/auth/login", loginData, JsonObject.class);
 
-        if (loginResponse == null || !loginResponse.has("token")) {
+        if(loginResponse == null || !loginResponse.has("token")){
             throw new IOException("Đăng nhập thất bại: không nhận được token");
         }
 
@@ -64,7 +63,7 @@ public class AuthService {
 
         JsonObject meResponse = apiService.get("/auth/me", JsonObject.class, null);
 
-        if (meResponse == null || !meResponse.has("user")) {
+        if(meResponse == null || !meResponse.has("user")){
             throw new IOException("Đăng nhập thất bại: không nhận được thông tin user");
         }
 

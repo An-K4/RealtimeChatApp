@@ -69,11 +69,11 @@ public class SocketService {
             socket.on("noti-onlineList-toMe", args -> {
                 List<String> users = new ArrayList<>();
                 if (args.length > 0) {
-                    if (args[0] instanceof JSONArray) {
+                    if (args[0] instanceof JSONArray){
                         JSONArray jsonArray = (JSONArray) args[0];
 
                         try {
-                            for (int i = 0; i < jsonArray.length(); i++) {
+                            for (int i = 0; i < jsonArray.length(); i++){
                                 users.add(jsonArray.getString(i));
                             }
                         } catch (Exception e) {
@@ -93,28 +93,28 @@ public class SocketService {
 
             // new user online
             socket.on("noti-online", args -> {
-                if (args.length > 0 && onUserOnline != null) {
-                    try {
-                        // backend send object
-                        JSONObject data = (JSONObject) args[0];
-                        String id = data.optString("id");
-                        if (!id.isEmpty()) {
-                            Platform.runLater(() -> onUserOnline.accept(id));
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
+               if(args.length > 0 && onUserOnline != null){
+                   try {
+                       // backend send object
+                       JSONObject data = (JSONObject) args[0];
+                       String id = data.optString("id");
+                       if(!id.isEmpty()){
+                           Platform.runLater(() -> onUserOnline.accept(id));
+                       }
+                   } catch (Exception e){
+                       e.printStackTrace();
+                   }
+               }
             });
 
             // new user offline
             socket.on("noti-offline", args -> {
-                if (args.length > 0 && onUserOffline != null) {
+                if (args.length > 0 && onUserOffline != null){
                     try {
                         // backend send object
                         JSONObject data = (JSONObject) args[0];
                         String id = data.optString("id");
-                        if (!id.isEmpty()) {
+                        if(!id.isEmpty()){
                             Platform.runLater(() -> onUserOffline.accept(id));
                         }
                     } catch (Exception e) {
@@ -125,32 +125,32 @@ public class SocketService {
 
             // typing start
             socket.on("typing-start", args -> {
-                if (args.length > 0 && onTypingStart != null) {
-                    JSONObject data = (JSONObject) args[0];
-                    String senderId = data.optString("senderId");
-                    Platform.runLater(() -> onTypingStart.accept(senderId));
-                }
+               if (args.length > 0 && onTypingStart != null){
+                   JSONObject data = (JSONObject) args[0];
+                   String senderId = data.optString("senderId");
+                   Platform.runLater(() -> onTypingStart.accept(senderId));
+               }
             });
 
             // typing stop
             socket.on("typing-stop", args -> {
-                if (args.length > 0 && onTypingStop != null) {
-                    JSONObject data = (JSONObject) args[0];
-                    String senderId = data.optString("senderId");
-                    Platform.runLater(() -> onTypingStop.accept(senderId));
-                }
+               if (args.length > 0 && onTypingStop != null){
+                   JSONObject data = (JSONObject) args[0];
+                   String senderId = data.optString("senderId");
+                   Platform.runLater(() -> onTypingStop.accept(senderId));
+               }
             });
 
             // seen event
             socket.on("send-message", args -> {
-                if (args.length > 0 && onMessageSeen != null) {
-                    try {
-                        JsonObject data = gson.fromJson(args[0].toString(), JsonObject.class);
-                        Platform.runLater(() -> onMessageSeen.accept(data));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
+               if (args.length > 0 && onMessageSeen != null){
+                   try {
+                       JsonObject data = gson.fromJson(args[0].toString(), JsonObject.class);
+                       Platform.runLater(() -> onMessageSeen.accept(data));
+                   } catch (Exception e) {
+                       e.printStackTrace();
+                   }
+               }
             });
 
             // ===== receive message =====
@@ -167,11 +167,11 @@ public class SocketService {
             });
 
             socket.on("seen-message", args -> {
-                if (args.length > 0 && onMessageSeen != null) {
+                if (args.length > 0 && onMessageSeen != null){
                     try {
                         JsonObject data = gson.fromJson(args[0].toString(), JsonObject.class);
                         Platform.runLater(() -> onMessageSeen.accept(data));
-                    } catch (Exception e) {
+                    } catch (Exception e){
                         e.printStackTrace();
                     }
                 }
@@ -268,36 +268,36 @@ public class SocketService {
     }
 
     // typing status, seen status
-    public void emitStartTyping(String receiverId) {
-        if (socket != null) {
+    public void emitStartTyping(String receiverId){
+        if (socket != null){
             JSONObject obj = new JSONObject();
             try {
                 obj.put("receiverId", receiverId);
-            } catch (Exception e) {
+            } catch (Exception e){
                 e.printStackTrace();
             }
             socket.emit("typing-start", obj);
         }
     }
 
-    public void emitStopTyping(String receiverId) {
-        if (socket != null) {
+    public void emitStopTyping(String receiverId){
+        if (socket != null){
             JSONObject obj = new JSONObject();
             try {
                 obj.put("receiverId", receiverId);
-            } catch (Exception e) {
+            } catch (Exception e){
                 e.printStackTrace();
             }
             socket.emit("typing-stop", obj);
         }
     }
 
-    public void emitSeenMessage(String senderId) {
-        if (socket != null) {
+    public void emitSeenMessage(String senderId){
+        if (socket != null){
             JSONObject obj = new JSONObject();
             try {
                 obj.put("senderId", senderId);
-            } catch (Exception e) {
+            } catch (Exception e){
                 e.printStackTrace();
             }
             socket.emit("seen-message", obj);
@@ -332,8 +332,7 @@ public class SocketService {
 
     // ==================== GROUP EMIT METHODS ====================
     public void joinGroup(String groupId) {
-        if (socket == null || !socket.connected())
-            return;
+        if (socket == null || !socket.connected()) return;
 
         JSONObject obj = new JSONObject();
         try {
@@ -345,8 +344,7 @@ public class SocketService {
     }
 
     public void leaveGroup(String groupId) {
-        if (socket == null || !socket.connected())
-            return;
+        if (socket == null || !socket.connected()) return;
 
         JSONObject obj = new JSONObject();
         try {
@@ -381,8 +379,7 @@ public class SocketService {
     }
 
     public void emitGroupTypingStart(String groupId) {
-        if (socket == null || !socket.connected())
-            return;
+        if (socket == null || !socket.connected()) return;
 
         JSONObject obj = new JSONObject();
         try {
@@ -394,8 +391,7 @@ public class SocketService {
     }
 
     public void emitGroupTypingStop(String groupId) {
-        if (socket == null || !socket.connected())
-            return;
+        if (socket == null || !socket.connected()) return;
 
         JSONObject obj = new JSONObject();
         try {
@@ -407,8 +403,7 @@ public class SocketService {
     }
 
     public void emitSeenGroupMessage(String messageId, String groupId) {
-        if (socket == null || !socket.connected())
-            return;
+        if (socket == null || !socket.connected()) return;
 
         JSONObject obj = new JSONObject();
         try {
