@@ -1,0 +1,572 @@
+/* Dark Theme Styles */
+
+/* Root and general styles */
+.root {
+    -bg-primary: #1e1e1e;
+    -text-main: #ffffff;
+    /* Chữ tự động trắng */
+    -text-secondary: #b0b0b0;
+    -accent-color: #a5b4fc;
+    -icon-default: #ffffff;
+    /* ICON TỰ ĐỘNG TRẮNG */
+}
+
+/* Icon sẽ luôn ăn theo biến -icon-default */
+.ikonli-font-icon {
+    -fx-icon-color: -icon-default;
+}
+
+/* Login/Signup page styles */
+.login-container {
+    -fx-background-color: #121212;
+}
+
+.login-form-pane {
+    -fx-background-color: #1e1e1e;
+}
+
+.login-pattern-pane {
+    -fx-background-color: linear-gradient(to bottom, #667eea 0%, #764ba2 100%);
+}
+
+.logo-icon-bg {
+    -fx-background-color: rgba(102, 126, 234, 0.2);
+    -fx-background-radius: 12;
+    -fx-pref-width: 48;
+    -fx-pref-height: 48;
+}
+
+.logo-icon {
+    -fx-fill: #667eea;
+}
+
+.login-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+}
+
+.login-subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: #b0b0b0;
+}
+
+.pattern-title {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+}
+
+.pattern-subtitle {
+    -fx-font-size: 16px;
+    -fx-text-fill: rgba(255, 255, 255, 0.9);
+    -fx-wrap-text: true;
+    -fx-text-alignment: center;
+}
+
+.form-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #e0e0e0;
+}
+
+.input-container {
+    -fx-background-color: #2a2a2a;
+    -fx-border-color: #404040;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 10;
+}
+
+.input-search {
+    -fx-background-color: #333333;
+    -fx-border-color: #BDBDBD;
+    -fx-border-width: 1;
+    -fx-border-radius: 15;
+    -fx-background-radius: 15;
+    -fx-padding: 2 0 2 10;
+}
+
+.search-status-label {
+    -fx-font-size: 16px;
+    /* Chữ to hơn */
+    -fx-text-fill: #e0e0e0;
+    /* Màu chữ trắng/xám sáng nổi bật trên nền tối */
+    -fx-background-color: transparent;
+    /* Nền trong suốt */
+    -fx-padding: 10px;
+    /* Thêm chút padding */
+    -fx-alignment: center;
+    /* Căn giữa */
+    -fx-opacity: 0.85;
+    /* Hơi mờ một chút cho đẹp */
+}
+
+.text-input {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-font-size: 14px;
+    -fx-text-fill: #ffffff;
+}
+
+.input-icon {
+    -fx-fill: #999999;
+}
+
+.icon-button {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 5;
+}
+
+.icon-button:hover {
+    -fx-opacity: 0.7;
+}
+
+.primary-button {
+    -fx-background-color: #667eea;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 14px;
+    -fx-font-weight: 500;
+    -fx-padding: 12;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+
+.primary-button:hover {
+    -fx-background-color: #5568d3;
+}
+
+.primary-button:disabled {
+    -fx-background-color: #404040;
+    -fx-cursor: default;
+}
+
+.link {
+    -fx-text-fill: #667eea;
+    -fx-underline: true;
+    -fx-cursor: hand;
+}
+
+.link:hover {
+    -fx-text-fill: #5568d3;
+}
+
+/* Navbar styles */
+.navbar {
+    -fx-background-color: -bg-primary;
+    -fx-border-color: #333333;
+    -fx-border-width: 0 0 1 0;
+}
+
+.navbar-logo-bg {
+    -fx-background-color: rgba(102, 126, 234, 0.2);
+    -fx-background-radius: 8;
+    -fx-pref-width: 36;
+    -fx-pref-height: 36;
+}
+
+.navbar-logo-icon {
+    -fx-fill: #667eea;
+}
+
+.navbar-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -text-main;
+}
+
+.nav-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #e0e0e0;
+    -fx-font-size: 14px;
+    -fx-padding: 8 12;
+    -fx-cursor: hand;
+}
+
+.nav-button:hover {
+    -fx-background-color: #2a2a2a;
+}
+
+/* Sidebar styles */
+.sidebar {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #333333;
+    -fx-border-width: 0 1 0 0;
+}
+
+.sidebar-header {
+    -fx-border-color: #333333;
+    -fx-border-width: 0 0 1 0;
+}
+
+.sidebar-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #e0e0e0;
+}
+
+.filter-checkbox {
+    -fx-font-size: 12px;
+    -fx-text-fill: #b0b0b0;
+}
+
+.online-count {
+    -fx-font-size: 12px;
+    -fx-text-fill: #999999;
+}
+
+.online-dot {
+    -fx-fill: #31a24c;
+    -fx-stroke: white;
+    -fx-stroke-width: 1px;
+}
+
+.last-message-preview {
+    -fx-text-fill: #b0b3b8;
+}
+
+.unread-badge {
+    -fx-background-color: #ff3b30;
+    /* Màu đỏ */
+    -fx-text-fill: white;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 6 2 6;
+    -fx-background-radius: 10;
+    -fx-min-width: 18px;
+    -fx-alignment: center;
+}
+
+.user-list {
+    -fx-background-color: transparent;
+}
+
+.user-list .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.user-list .list-cell:selected {
+    -fx-background-color: #2a2a2a;
+}
+
+/* Chỉ áp dụng hiệu ứng hover cho các ô CÓ dữ liệu */
+.user-list .list-cell:filled:hover {
+    -fx-background-color: #3d3d3d;
+    /* Màu hover bạn muốn (ví dụ màu tối cho theme dark) */
+    -fx-cursor: hand;
+}
+
+/* Đảm bảo các ô TRỐNG luôn có nền trong suốt và không có hiệu ứng */
+.user-list .list-cell:empty {
+    -fx-background-color: transparent;
+    -fx-mouse-transparent: true;
+    /* Chống click vào vùng trống */
+}
+
+.user-avatar {
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.3), 3, 0, 0, 1);
+}
+
+.user-name {
+    -fx-font-size: 14px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #e0e0e0;
+}
+
+.user-status {
+    -fx-font-size: 12px;
+    -fx-text-fill: #999999;
+}
+
+/* Chat area styles */
+.chat-container {
+    -fx-background-color: #121212;
+}
+
+.chat-area {
+    -fx-background-color: #1a1a1a;
+}
+
+.chat-header {
+    -fx-border-color: #333333;
+    -fx-border-width: 0 0 1 0;
+    -fx-background-color: #1e1e1e;
+}
+
+.chat-header-avatar {
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.3), 3, 0, 0, 1);
+}
+
+.chat-header-name {
+    -fx-font-size: 16px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #e0e0e0;
+}
+
+.chat-header-status {
+    -fx-font-size: 12px;
+    -fx-text-fill: #999999;
+}
+
+.close-button {
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+    -fx-padding: 5;
+}
+
+.close-button:hover {
+    -fx-background-color: #2a2a2a;
+}
+
+.close-button .ikonli-font-icon {
+    -fx-icon-color: #e0e0e0;
+}
+
+.no-chat-view {
+    -fx-background-color: transparent;
+}
+
+.no-chat-icon-bg {
+    -fx-background-color: rgba(102, 126, 234, 0.2);
+    -fx-background-radius: 16;
+    -fx-pref-width: 64;
+    -fx-pref-height: 64;
+}
+
+.no-chat-icon {
+    -fx-fill: #667eea;
+}
+
+.no-chat-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e0e0e0;
+}
+
+.no-chat-subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: #999999;
+}
+
+.message-scroll-pane {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
+
+.message-scroll-pane .viewport {
+    -fx-background-color: transparent;
+}
+
+.message-scroll-pane .scroll-bar:vertical {
+    -fx-background-color: transparent;
+}
+
+.message-scroll-pane .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+.message-scroll-pane .scroll-bar:vertical .thumb {
+    -fx-background-color: #404040;
+    -fx-background-radius: 5;
+}
+
+.message-box-left {
+    -fx-alignment: center-left;
+    -fx-padding: 5;
+}
+
+.message-box-right {
+    -fx-alignment: center-right;
+    -fx-padding: 5;
+}
+
+.message-avatar {
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.3), 3, 0, 0, 1);
+}
+
+.message-text {
+    -fx-background-color: #2a2a2a;
+    -fx-background-radius: 12;
+    -fx-padding: 10 15;
+    -fx-font-size: 14px;
+    -fx-text-fill: #e0e0e0;
+    -fx-max-width: 400;
+}
+
+.message-status {
+    -fx-font-size: 11px;
+    -fx-alignment: center-right;
+    -fx-text-fill: #888888;
+    -fx-padding: 0 5 0 0;
+}
+
+.message-box-right .message-text {
+    -fx-background-color: #667eea;
+    -fx-text-fill: #ffffff;
+}
+
+.message-image {
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.3), 3, 0, 0, 1);
+    -fx-background-radius: 8;
+}
+
+.message-time {
+    -fx-font-size: 11px;
+    -fx-text-fill: #999999;
+    -fx-padding: 0 5 0 0;
+}
+
+.message-input-container {
+    -fx-border-color: #333333;
+    -fx-border-width: 1 0 0 0;
+    -fx-background-color: #1e1e1e;
+}
+
+.message-input {
+    -fx-background-color: #2a2a2a;
+    -fx-border-color: #404040;
+    -fx-border-width: 1;
+    -fx-border-radius: 20;
+    -fx-background-radius: 20;
+    -fx-padding: 10 15;
+    -fx-font-size: 14px;
+    -fx-text-fill: #e0e0e0;
+}
+
+.message-input:focused {
+    -fx-border-color: #667eea;
+}
+
+.send-button {
+    -fx-background-color: #667eea;
+    -fx-background-radius: 20;
+    -fx-pref-width: 40;
+    -fx-pref-height: 40;
+    -fx-cursor: hand;
+}
+
+.send-button:hover {
+    -fx-background-color: #5568d3;
+}
+
+.send-button .ikonli-font-icon {
+    -fx-icon-color: #ffffff;
+}
+
+/* Home container */
+.home-container {
+    -fx-background-color: #121212;
+}
+
+/* Profile page styles */
+.profile-container {
+    -fx-background-color: #1e1e1e;
+    -fx-padding: 30;
+}
+
+.back-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #667eea;
+    -fx-font-size: 14px;
+    -fx-font-weight: 500;
+    -fx-padding: 8 15;
+    -fx-cursor: hand;
+    -fx-border-color: #667eea;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.back-button:hover {
+    -fx-background-color: rgba(102, 126, 234, 0.1);
+}
+
+.back-button .ikonli-font-icon {
+    -fx-icon-color: #667eea;
+}
+
+.profile-avatar-large {
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.3), 8, 0, 0, 2);
+    -fx-background-radius: 60;
+}
+
+.profile-name {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e0e0e0;
+}
+
+.profile-email {
+    -fx-font-size: 16px;
+    -fx-text-fill: #b0b0b0;
+}
+
+.profile-id {
+    -fx-font-size: 12px;
+    -fx-text-fill: #999999;
+}
+
+.profile-info-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #999999;
+}
+
+.profile-info-value {
+    -fx-font-size: 14px;
+    -fx-text-fill: #e0e0e0;
+}
+
+/* Settings page styles */
+.settings-container {
+    -fx-background-color: #1e1e1e;
+    -fx-padding: 30;
+}
+
+.settings-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e0e0e0;
+}
+
+.settings-section {
+    -fx-background-color: #2a2a2a;
+    -fx-background-radius: 12;
+    -fx-border-color: #333333;
+    -fx-border-width: 1;
+    -fx-border-radius: 12;
+}
+
+.settings-section-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #e0e0e0;
+}
+
+.theme-radio {
+    -fx-font-size: 14px;
+    -fx-text-fill: #e0e0e0;
+}
+
+.theme-radio .radio {
+    -fx-background-color: #2a2a2a;
+    -fx-border-color: #404040;
+    -fx-border-width: 2;
+    -fx-border-radius: 10;
+}
+
+.theme-radio:selected .radio {
+    -fx-background-color: #667eea;
+    -fx-border-color: #667eea;
+}
+
+.theme-radio .dot {
+    -fx-background-color: transparent;
+}
+
+.theme-radio:selected .dot {
+    -fx-background-color: #ffffff;
+}

@@ -1,0 +1,169 @@
+package com.chatty.models;
+
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+
+public class User {
+    private String _id;
+    private String username;
+    private String fullName;
+    private String email;
+    private String profilePic;
+    private String token;
+
+    private final BooleanProperty isOnline = new SimpleBooleanProperty(false);
+    private final BooleanProperty isTyping = new SimpleBooleanProperty(false);
+    private final StringProperty statusPreview = new SimpleStringProperty("");
+
+    private int unreadCount;
+    private LastMessage lastMessage;
+
+    public User() {}
+
+    public User(String _id, String username, String fullName, String email, String profilePic) {
+        this._id = _id;
+        this.username = username;
+        this.fullName = fullName;
+        this.email = email;
+        this.profilePic = profilePic;
+    }
+
+    public static class LastMessage{
+        private String content;
+        private String createdAt;
+        private boolean isMine;
+
+        public String getContent() {
+            return content;
+        }
+
+        public void setContent(String content) {
+            this.content = content;
+        }
+
+        public String getCreatedAt() {
+            return createdAt;
+        }
+
+        public void setCreatedAt(String createdAt) {
+            this.createdAt = createdAt;
+        }
+
+        public boolean isMine() {
+            return isMine;
+        }
+
+        public void setIsMine(boolean isMine) {
+            this.isMine = isMine;
+        }
+    }
+
+    public void updateStatusPreview(){
+        if(isTyping.get()){
+            statusPreview.set("Đang soạn tin...");
+        } else {
+            if(lastMessage != null && lastMessage.getContent() != null){
+                String prefix = lastMessage.isMine() ? "Bạn: " : "";
+
+                // cắt bớt nếu tin dài
+                String content = lastMessage.getContent();
+                if(content.length() > 25) content = content.substring(0, 25) + "...";
+                statusPreview.set(prefix + content);
+            } else {
+                statusPreview.set("Chạm để bắt đầu chat");
+            }
+        }
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public String get_id() {
+        return _id;
+    }
+
+    public void set_id(String _id) {
+        this._id = _id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getProfilePic() {
+        return profilePic;
+    }
+
+    public void setProfilePic(String profilePic) {
+        this.profilePic = profilePic;
+    }
+
+    public boolean isOnline() {
+        return isOnline.get();
+    }
+
+    public BooleanProperty isOnlineProperty() {
+        return isOnline;
+    }
+
+    public void setOnline(boolean online){
+        this.isOnline.set(online);
+    }
+
+    public void setTyping(boolean typing) {
+        this.isTyping.set(typing);
+        updateStatusPreview();
+    }
+
+    public BooleanProperty isTypingProperty() {
+        return isTyping;
+    }
+
+    public StringProperty statusPreviewProperty() {
+        return statusPreview;
+    }
+
+    public int getUnreadCount() {
+        return unreadCount;
+    }
+
+    public void setUnreadCount(int unreadCount) {
+        this.unreadCount = unreadCount;
+    }
+
+    public LastMessage getLastMessage() {
+        return lastMessage;
+    }
+
+    public void setLastMessage(LastMessage lastMessage) {
+        this.lastMessage = lastMessage;
+        updateStatusPreview();
+    }
+}
