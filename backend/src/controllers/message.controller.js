@@ -1,5 +1,6 @@
 const Message = require("../models/message.model");
 const mongoose = require("mongoose");
+const User = require("../models/user.model");
 
 // lấy messages giữa tôi và người này
 module.exports.getMessages = async (req, res) => {
@@ -126,7 +127,7 @@ module.exports.upload = async (req, res) => {
     }
 
     return res.status(200).json({
-      message: "file uploaded",
+      message: "Upload file thành công",
       url: fileUrl
     })
   } catch (error) {
@@ -134,5 +135,52 @@ module.exports.upload = async (req, res) => {
     return res.status(500).json({
       message: "Lỗi server khi upload file"
     })
+  }
+}
+
+module.exports.deleteMessage = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { messageId } = req.body;
+
+    if(!messageId || !mongoose.Types.ObjectId.isValid(messageId)) 
+      return res.status(400).json({ message: "Message id không hợp lệ"})
+
+    const message = await Message.findById(messageId);
+
+    if(!message) return res.status(404).json({ message: "Tin nhắn không tồn tại"});
+
+    if(message.senderId.toString() !== userId.toString() && message.receiverId.toString() !== userId.toString())
+      return res.status(403).json({ message: "Bạn không có quyền xóa tin nhắn này"});
+
+    const deleted = await Message.findByIdAndDelete(messageId);
+
+    return res.status(200).json({ message: "Xóa tin nhắn thành công", deleted });
+  } catch (error) {
+    console.log("Lỗi khi xóa tin nhắn: ", error);
+    return res.status(500).json({ message: "Lỗi server khi xóa tin nhắn"});
+  }
+}
+
+module.exports.deleteAllMessage = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { id } = req.params;
+
+    if(!id || !mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: "Id người dùng không hợp lệ"})
+
+    const friend = await User.findById(id);
+
+    if(!friend) return res.status(404).json({ message: "Người dùng không tồn tại"})
+
+    const result = await Message.deleteMany({
+      senderId: { $in: [userId, friend._id]},
+      receiverId: {$in: [userId, friend._id]}
+    })
+
+    return res.status(200).json({ message: "Xóa thành công tin nhắn", deletedCount: result.deletedCount })
+  } catch (error) {
+    console.log("Lỗi khi xóa tất cả tin nhắn: ", error);
+    return res.status(500).json({ message: "Lỗi server khi xóa tất cả tin nhắn"})
   }
 }

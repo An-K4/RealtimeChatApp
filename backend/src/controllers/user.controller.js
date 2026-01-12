@@ -1,5 +1,6 @@
 const User = require("../models/user.model");
 const Group = require("../models/group.model");
+const hashingService = require("../services/hasing.service");
 
 module.exports.editAccount = async (req, res) => {
   try {
@@ -119,5 +120,34 @@ module.exports.search = async (req, res) => {
   } catch (error) {
     console.log("Search error:", error);
     return res.status(500).json({ message: "Lỗi server khi tìm kiếm!"});
+  }
+}
+
+module.exports.changePassword = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { oldPassword, newPassword } = req.body;
+
+    if(!oldPassword || !newPassword) return res.status(400).json({ message: "Dữ liệu không hợp lệ"});
+
+    if(newPassword.length < 6) {
+      return res.status(400).json({message: "Mật khẩu phải có ít nhất 6 ký tự"});
+    }
+
+    const user = await User.findById(userId);
+    
+    if(!hashingService.compare(oldPassword, user.password)) 
+      return res.status(400).json({ message: "Mật khẩu cũ không đúng"});
+
+    const hashedNewPassword = hashingService.hash(newPassword);
+    user.password = hashedNewPassword;
+
+    await user.save();
+
+    return res.status(200).json({ message: "Đổi mật khẩu thành công"});
+
+  } catch (error) {
+    console.log("Lỗi khi đổi mật khẩu: ", error);
+    return res.status(500).json({ message: "Lỗi server khi đổi mật khẩu"});
   }
 }
