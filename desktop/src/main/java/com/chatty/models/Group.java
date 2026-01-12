@@ -1,5 +1,7 @@
 package com.chatty.models;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.annotations.SerializedName;
 import javafx.beans.property.*;
 import java.util.ArrayList;
@@ -10,9 +12,8 @@ public class Group {
     private String name;
     private String description;
     private String avatar;
-    private User owner;
+    private JsonElement owner;
     private List<GroupMember> members = new ArrayList<>();
-    private boolean isActive;
     private int unreadCount; // Sửa từ IntegerProperty thành int
     private LastMessage lastMessage;
 
@@ -127,7 +128,8 @@ public class Group {
 
     // Check if current user is owner
     public boolean isUserOwner(String userId) {
-        return owner != null && owner.equals(userId);
+        User u = getOwner(); // Gọi hàm getter thông minh bên dưới
+        return u != null && u.get_id().equals(userId);
     }
 
     // Getters and Setters
@@ -164,19 +166,31 @@ public class Group {
     }
 
     public User getOwner() {
-        return owner;
+        if (owner == null || owner.isJsonNull()) return null;
+
+        // Trường hợp 1: API trả về Object (User đầy đủ) - ví dụ: getInfoGroup, createGroup
+        if (owner.isJsonObject()) {
+            return new Gson().fromJson(owner, User.class);
+        }
+
+        // Trường hợp 2: API trả về String (Chỉ có ID) - ví dụ: getGroups
+        if (owner.isJsonPrimitive()) {
+            User tempUser = new User();
+            tempUser.set_id(owner.getAsString());
+            return tempUser;
+        }
+
+        return null;
     }
 
-    public void setOwner(User owner) {
+    // 4. Setter cũng cần sửa để nhận JsonElement (hoặc bạn có thể overload)
+    public void setOwner(JsonElement owner) {
         this.owner = owner;
     }
 
-    public boolean isActive() {
-        return isActive;
-    }
-
-    public void setActive(boolean active) {
-        isActive = active;
+    // Helper để set owner bằng String ID (nếu cần dùng thủ công)
+    public void setOwnerId(String id) {
+        this.owner = new com.google.gson.JsonPrimitive(id);
     }
 
     public List<GroupMember> getMembers() {

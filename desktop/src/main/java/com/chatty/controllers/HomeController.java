@@ -713,6 +713,9 @@ public class HomeController {
         String groupId = groupFromList.get_id();
         this.selectedUser = null; // Clear user selection
 
+        groupFromList.setUnreadCount(0);
+        groupListView.refresh();
+
         // 2. Hiển thị trạng thái đang tải (tùy chọn nhưng nên có)
         showChatView();
         messageContainer.getChildren().clear();

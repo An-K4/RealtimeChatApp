@@ -136,6 +136,7 @@ module.exports.getGroups = async (req, res) => {
           name: 1,
           avatar: 1,
           description: 1,
+          owner: 1,
           unreadCount: 1,
           lastMessage: {
             content: "$lastMessage.content",
