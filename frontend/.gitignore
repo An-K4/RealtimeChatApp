@@ -24,3 +24,9 @@ dist-ssr
 *.sln
 *.sw?
 
+/target/
+**/target/
+*.class
+.idea/
+*.iml
+

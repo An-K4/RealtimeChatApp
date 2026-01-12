@@ -41,7 +41,7 @@ public class GroupMessage {
     // Get sender avatar
     public String getSenderAvatar() {
         if (sender != null) {
-            return sender.getProfilePic();
+            return sender.getAvatar();
         }
         return null;
     }

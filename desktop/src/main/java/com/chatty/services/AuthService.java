@@ -14,11 +14,13 @@ import java.util.List;
 
 public class AuthService {
     private final ApiService apiService;
+    private final UserService userService;
     private String sessionCookie;
     private User currentUser;
 
     public AuthService() {
         this.apiService = new ApiService();
+        this.userService = new UserService();
         this.sessionCookie = loadSessionCookie();
     }
 
@@ -105,7 +107,12 @@ public class AuthService {
     }
 
     public User getCurrentUser() {
-        return currentUser;
+        try {
+            return userService.getCurrentUserInfo();
+        } catch (IOException e) {
+            System.out.println("Không lấy được toàn bộ thông tin");
+            return currentUser;
+        }
     }
 
     public String getToken() {

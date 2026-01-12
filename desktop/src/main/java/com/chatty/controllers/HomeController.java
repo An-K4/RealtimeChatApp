@@ -30,6 +30,8 @@ public class HomeController {
     private final ChatService chatService;
     private final GroupService groupService;
     private final SocketService socketService;
+    private final UserService userService;
+    private final User currentUser;
 
     // User chat
     private User selectedUser;
@@ -73,12 +75,14 @@ public class HomeController {
         this.socketService = new SocketService();
         this.chatService = new ChatService(socketService);
         this.groupService = new GroupService(socketService);
+        this.userService = new UserService();
         this.messages = new ArrayList<>();
         this.groupMessages = new ArrayList<>();
         this.allUsers = new ArrayList<>();
         this.allGroups = new ArrayList<>();
         this.currentDisplayedUsers = new ArrayList<>();
         this.latestSearchResults = new ArrayList<>();
+        this.currentUser = authService.getCurrentUser();
     }
 
     public void show(Stage primaryStage, User user) {
@@ -110,8 +114,6 @@ public class HomeController {
         loadUsers();
         loadGroups();
 
-        authService.setCurrentUser(user);
-        User currentUser = authService.getCurrentUser();
         if (currentUser != null) {
             setupSocketListeners();
             socketService.connect(currentUser.get_id());
@@ -822,7 +824,6 @@ public class HomeController {
                     renderGroupMessages();
 
                     // Emit seen logic
-                    User currentUser = authService.getCurrentUser();
                     for (GroupMessage msg : groupMessages) {
                         if (!msg.getSenderId().equals(currentUser.get_id()) && !msg.isSeenBy(currentUser.get_id())) {
                             socketService.emitSeenGroupMessage(msg.get_id(), selectedGroup.get_id());
@@ -840,7 +841,6 @@ public class HomeController {
 
     private void renderGroupMessages() {
         messageContainer.getChildren().clear();
-        User currentUser = authService.getCurrentUser();
 
         for (GroupMessage msg : groupMessages) {
             boolean isMyMessage = msg.getSenderId().equals(currentUser.get_id());
@@ -870,7 +870,7 @@ public class HomeController {
             messageContent.getChildren().add(timeLabel);
 
             if (isMyMessage) {
-                Node myAvatar = createAvatarNode(currentUser.getProfilePic(), 40, 24);
+                Node myAvatar = createAvatarNode(currentUser.getAvatar(), 40, 24);
 
                 // Container for message content + status
                 VBox contentWithStatus = new VBox(2);
@@ -991,7 +991,7 @@ public class HomeController {
                         List<User> results = chatService.searchUser(newVal.trim());
                         // Lọc ra những người đã được chọn và chính mình
                         List<User> filteredResults = results.stream()
-                                .filter(u -> !selectedMembers.contains(u) && !u.get_id().equals(authService.getCurrentUser().get_id()))
+                                .filter(u -> !selectedMembers.contains(u) && !u.get_id().equals(currentUser.get_id()))
                                 .collect(Collectors.toList());
                         Platform.runLater(() -> searchResultsView.getItems().setAll(filteredResults));
                     } catch (Exception e) {
@@ -1095,7 +1095,6 @@ public class HomeController {
         HBox actionButtons = new HBox(10);
         actionButtons.setAlignment(Pos.CENTER);
 
-        User currentUser = authService.getCurrentUser();
         String currentUserId = currentUser.get_id();
 
         // Kiểm tra ownerId không phải null TRƯỚC KHI gọi .equals()
@@ -1230,7 +1229,7 @@ public class HomeController {
                 if (empty || user == null) {
                     setGraphic(null);
                 } else {
-                    Node avatar = createAvatarNode(user.getProfilePic(), 30, 20);
+                    Node avatar = createAvatarNode(user.getAvatar(), 30, 20);
                     if (root.getChildren().size() > 2)
                         root.getChildren().remove(1); // Remove old avatar
                     root.getChildren().add(1, avatar);
@@ -1568,11 +1567,6 @@ public class HomeController {
         });
     }
 
-    private void showChangeRoleDialog(Group group) {
-        // ... Tương tự, tạo một dialog với ListView và ComboBox để đổi vai trò
-        showAlert("Thông báo", "Chức năng này đang được phát triển.", Alert.AlertType.INFORMATION);
-    }
-
     private void showNoChatView() {
         HBox chatHeader = (HBox) mainContainer.lookup("#chatHeader");
         VBox noChatView = (VBox) mainContainer.lookup("#noChatView");
@@ -1729,7 +1723,7 @@ public class HomeController {
             chatHeader.setManaged(true);
 
             chatHeader.getChildren().clear();
-            Node avatarNode = createAvatarNode(user.getProfilePic(), 40, 24);
+            Node avatarNode = createAvatarNode(user.getAvatar(), 40, 24);
             avatarNode.getStyleClass().add("chat-header-avatar");
 
             VBox userInfo = new VBox(5);
@@ -1773,7 +1767,6 @@ public class HomeController {
 
     private void renderMessages() {
         messageContainer.getChildren().clear();
-        User currentUser = authService.getCurrentUser();
 
         for (int i = 0; i < messages.size(); i++) {
             Message message = messages.get(i);
@@ -1802,7 +1795,7 @@ public class HomeController {
             if (isMyMessage) {
                 messageContent.setAlignment(Pos.BOTTOM_RIGHT);
                 statusContainer.setAlignment(Pos.BOTTOM_RIGHT);
-                Node myAvatar = createAvatarNode(currentUser.getProfilePic(), 40, 24);
+                Node myAvatar = createAvatarNode(currentUser.getAvatar(), 40, 24);
 
                 if (i == messages.size() - 1) {
                     Label statusLabel = new Label("Đã gửi");
@@ -1817,7 +1810,7 @@ public class HomeController {
 
                 messageBox.getChildren().addAll(messageContent, myAvatar);
             } else {
-                Node receiverAvatar = createAvatarNode(selectedUser.getProfilePic(), 40, 24);
+                Node receiverAvatar = createAvatarNode(selectedUser.getAvatar(), 40, 24);
                 messageBox.getChildren().addAll(receiverAvatar, messageContent);
             }
 
@@ -1836,10 +1829,10 @@ public class HomeController {
             renderGroupMessages();
         } else if (selectedUser != null) {
             // Send User Message
-            chatService.sendMessage(authService.getCurrentUser().get_id(), selectedUser.get_id(), content);
+            chatService.sendMessage(currentUser.get_id(), selectedUser.get_id(), content);
             // Local echo
             Message localMsg = new Message();
-            localMsg.setSenderId(authService.getCurrentUser().get_id());
+            localMsg.setSenderId(currentUser.get_id());
             localMsg.setReceiverId(selectedUser.get_id());
             localMsg.setContent(content);
             localMsg.setCreatedAt(Instant.now().toString());
@@ -1895,7 +1888,6 @@ public class HomeController {
     // ========== PROFILE & SETTINGS (Copied from old controller) ==========
 
     private void showProfile() {
-        User currentUser = authService.getCurrentUser();
         if (currentUser == null) {
             showAlert("Lỗi", "Không tìm thấy người dùng hiện tại", Alert.AlertType.ERROR);
             return;
@@ -1910,6 +1902,8 @@ public class HomeController {
         parentContainer.getStyleClass().add("profile-container");
         parentContainer.setAlignment(Pos.TOP_CENTER);
 
+        System.out.println(user.getAvatar());
+
         HBox headerBox = new HBox();
         headerBox.setAlignment(Pos.CENTER_LEFT);
         Button backBtn = new Button("Quay lại");
@@ -1922,15 +1916,20 @@ public class HomeController {
 
         // Profile and change password content
         HBox profileContainer = new HBox(50);
-        profileContainer.setMaxWidth(1000);
-        profileContainer.setMinWidth(600);
+//        profileContainer.setMaxWidth(1000);
+//        profileContainer.setMinWidth(600);
         profileContainer.setAlignment(Pos.CENTER);
+        profileContainer.setPadding(new Insets(20));
 
         VBox profileContent = new VBox(20);
         profileContent.setAlignment(Pos.TOP_CENTER);
-        profileContent.setMinWidth(400);
+        profileContent.setMinWidth(300);
+        profileContent.setPrefWidth(400);
 
-        Node avatarNode = createAvatarNode(user.getProfilePic(), 150, 120);
+        Node avatarNode = createAvatarNode(user.getAvatar(), 150, 120);
+        StackPane avatarContainer = new StackPane(avatarNode);
+        avatarContainer.setMinSize(150, 150);
+
         Label fullnameLabel = new Label(user.getFullName() != null ? user.getFullName() : "N/A");
         fullnameLabel.getStyleClass().add("profile-name");
         Label emailLabel = new Label(user.getEmail() != null ? user.getEmail() : "N/A");
@@ -1948,15 +1947,62 @@ public class HomeController {
         HBox fullnameInfo = createInfoRow("Họ tên:", user.getFullName() != null ? user.getFullName() : "N/A");
         HBox emailInfo = createInfoRow("Email:", user.getEmail() != null ? user.getEmail() : "N/A");
 
-        infoSection.getChildren().addAll(usernameInfo, fullnameInfo, emailInfo);
-        profileContent.getChildren().addAll(avatarNode, fullnameLabel, emailLabel, horizontalDivider, infoSection);
+        Button changePhotoBtn = new Button("Đổi ảnh đại diện");
+        changePhotoBtn.getStyleClass().add("primary-button");
+        changePhotoBtn.setMaxWidth(Double.MAX_VALUE);
+        changePhotoBtn.setOnAction(e -> {
+            javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+            fileChooser.setTitle("Chọn ảnh đại diện");
+            fileChooser.getExtensionFilters().add(
+                    new javafx.stage.FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
+            );
+            java.io.File selectedFile = fileChooser.showOpenDialog(primaryStage);
+            if (selectedFile != null) {
+                changePhotoBtn.setDisable(true);
+                changePhotoBtn.setText("Đang tải lên...");
+
+                try {
+                    // Gọi API upload
+                    String serverUrl = userService.updateUserAvatar(selectedFile);
+
+                    // Cập nhật User Model
+                    user.setAvatar(serverUrl);
+
+                    // Cập nhật UI trên JavaFX Application Thread
+                    Platform.runLater(() -> {
+                        // Tạo lại node ảnh mới từ URL server trả về (để đảm bảo link sống)
+                        // Hoặc dùng: String localUrl = selectedFile.toURI().toString(); để load nhanh hơn
+                        String localUrl = selectedFile.toURI().toString();
+                        Node newAvatarNode = createAvatarNode(localUrl, 150, 120);
+
+                        // Thay thế nội dung trong Container -> Giao diện sẽ đổi ngay lập tức
+                        avatarContainer.getChildren().setAll(newAvatarNode);
+
+                        showAlert("Thành công", "Cập nhật avatar thành công", Alert.AlertType.INFORMATION);
+                        changePhotoBtn.setDisable(false);
+                        changePhotoBtn.setText("Đổi ảnh đại diện");
+                    });
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                    Platform.runLater(() -> {
+                        showAlert("Lỗi", "Không thể upload ảnh: " + ex.getMessage(), Alert.AlertType.ERROR);
+                        changePhotoBtn.setDisable(false);
+                        changePhotoBtn.setText("Đổi ảnh đại diện");
+                    });
+                }
+            }
+        });
+
+        infoSection.getChildren().addAll(usernameInfo, fullnameInfo, emailInfo, changePhotoBtn);
+        profileContent.getChildren().addAll(avatarContainer, fullnameLabel, emailLabel, horizontalDivider, infoSection);
 
         Separator verticalDivider = new Separator(Orientation.VERTICAL);
-        verticalDivider.setMaxHeight(500);
+//        verticalDivider.setMaxHeight(500);
 
         VBox changePasswordContent = new VBox(20);
-        changePasswordContent.setAlignment(Pos.BOTTOM_LEFT);
-        changePasswordContent.setMinWidth(400);
+        changePasswordContent.setAlignment(Pos.TOP_LEFT);
+        changePasswordContent.setPrefWidth(400);
+        changePasswordContent.setMinWidth(300);
         changePasswordContent.setPadding(new Insets(0, 0, 0, 30));
 
         Label changePassTitle = new Label("Đổi mật khẩu");
@@ -1984,6 +2030,9 @@ public class HomeController {
         passForm.getChildren().addAll(oldPassGroup, newPassGroup, confirmPassGroup, updatePassBtn);
         changePasswordContent.getChildren().addAll(changePassTitle, passForm);
 
+        HBox.setHgrow(profileContent, Priority.ALWAYS);
+        HBox.setHgrow(changePasswordContent, Priority.ALWAYS);
+
         profileContainer.getChildren().addAll(profileContent, verticalDivider, changePasswordContent);
         parentContainer.getChildren().addAll(headerBox, profileContainer);
 
@@ -2006,9 +2055,15 @@ public class HomeController {
     private VBox createPasswordInputGroup(String labelText, PasswordField field) {
         VBox group = new VBox(5);
         Label label = new Label(labelText);
+        HBox inputWrapper = new HBox();
+        inputWrapper.getStyleClass().add("input-container");
+        inputWrapper.setAlignment(Pos.CENTER_LEFT);
+        inputWrapper.setPrefHeight(45);
+
         label.getStyleClass().add("form-label");
         field.getStyleClass().add("text-input");
-        group.getChildren().addAll(label, field);
+        inputWrapper.getChildren().add(field);
+        group.getChildren().addAll(label, inputWrapper);
         return group;
     }
 
@@ -2029,7 +2084,7 @@ public class HomeController {
 
         new Thread(() -> {
             try {
-                authService.changePassword(oldPass, newPass);
+                userService.changePassword(oldPass, newPass);
                 Platform.runLater(() -> {
                     showAlert("Thành công", "Đổi mật khẩu thành công!", Alert.AlertType.INFORMATION);
                     oldF.clear();
@@ -2203,7 +2258,7 @@ public class HomeController {
                 cell.setPadding(new Insets(10));
                 cell.setAlignment(Pos.CENTER_LEFT);
 
-                Node avatarNode = createAvatarNode(user.getProfilePic(), 40, 24);
+                Node avatarNode = createAvatarNode(user.getAvatar(), 40, 24);
 
                 VBox userInfo = new VBox(2);
                 HBox nameRow = new HBox(6);
@@ -2296,14 +2351,13 @@ public class HomeController {
             } else {
                 HBox cell = new HBox(10);
                 cell.setAlignment(Pos.CENTER_LEFT);
-                Node avatar = createAvatarNode(member.getUser().getProfilePic(), 40, 24);
+                Node avatar = createAvatarNode(member.getUser().getAvatar(), 40, 24);
 
                 VBox info = new VBox(2);
                 Label nameLabel = new Label(member.getUser().getFullName());
                 nameLabel.getStyleClass().add("user-name");
                 info.getChildren().add(nameLabel);
 
-                User currentUser = authService.getCurrentUser();
                 boolean isCurrentUserOwner = groupContext.isUserOwner(currentUser.get_id());
                 boolean isThisMemberTheOwner = groupContext.isUserOwner(member.getUser().get_id());
 

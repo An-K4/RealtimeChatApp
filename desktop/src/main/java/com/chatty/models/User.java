@@ -10,7 +10,7 @@ public class User {
     private String username;
     private String fullName;
     private String email;
-    private String profilePic;
+    private String avatar;
     private String token;
 
     private final BooleanProperty isOnline = new SimpleBooleanProperty(false);
@@ -22,12 +22,12 @@ public class User {
 
     public User() {}
 
-    public User(String _id, String username, String fullName, String email, String profilePic) {
+    public User(String _id, String username, String fullName, String email, String avatar) {
         this._id = _id;
         this.username = username;
         this.fullName = fullName;
         this.email = email;
-        this.profilePic = profilePic;
+        this.avatar = avatar;
     }
 
     public static class LastMessage{
@@ -117,12 +117,12 @@ public class User {
         this.email = email;
     }
 
-    public String getProfilePic() {
-        return profilePic;
+    public String getAvatar() {
+        return avatar;
     }
 
-    public void setProfilePic(String profilePic) {
-        this.profilePic = profilePic;
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
     }
 
     public boolean isOnline() {
