@@ -2,6 +2,7 @@ package com.chatty.controllers;
 
 import com.chatty.models.User;
 import com.chatty.services.AuthService;
+import com.chatty.services.ThemeService;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -23,7 +24,7 @@ public class SignUpController {
     }
 
     public void show(Stage primaryStage) {
-        primaryStage.setTitle("Kma Chatty - Sign Up");
+        primaryStage.setTitle("Kma Chatty - Đăng ký");
         primaryStage.centerOnScreen();
 
         // Main container
@@ -40,9 +41,9 @@ public class SignUpController {
         // Logo
         VBox logoContainer = new VBox(10);
         logoContainer.setAlignment(Pos.CENTER);
-        Label title = new Label("Create Account");
+        Label title = new Label("Tạo tài khoản");
         title.getStyleClass().add("login-title");
-        Label subtitle = new Label("Get started with your free account");
+        Label subtitle = new Label("Bắt đầu với một tài khoản hoàn toàn miễn phí");
         subtitle.getStyleClass().add("login-subtitle");
 
         logoContainer.getChildren().addAll(title, subtitle);
@@ -52,7 +53,7 @@ public class SignUpController {
         formContainer.setPrefWidth(350);
 
         // Username field
-        Label usernameLabel = new Label("Username");
+        Label usernameLabel = new Label("Tên đăng nhập");
         usernameLabel.getStyleClass().add("form-label");
         HBox usernameContainer = new HBox(10);
         usernameContainer.setAlignment(Pos.CENTER_LEFT);
@@ -61,13 +62,13 @@ public class SignUpController {
         usernameIcon.setIconSize(20);
         usernameIcon.getStyleClass().add("input-icon");
         TextField usernameField = new TextField();
-        usernameField.setPromptText("your_username");
+        usernameField.setPromptText("nguyen_van_a");
         usernameField.getStyleClass().add("text-input");
         usernameField.setPrefWidth(310);
         usernameContainer.getChildren().addAll(usernameIcon, usernameField);
 
         // Password field
-        Label passwordLabel = new Label("Password");
+        Label passwordLabel = new Label("Mật khẩu");
         passwordLabel.getStyleClass().add("form-label");
         HBox passwordContainer = new HBox(10);
         passwordContainer.setAlignment(Pos.CENTER_LEFT);
@@ -112,7 +113,7 @@ public class SignUpController {
         passwordContainer.getChildren().addAll(lockIcon, passwordField, showPasswordBtn);
 
         // Full Name field
-        Label fullNameLabel = new Label("Full Name");
+        Label fullNameLabel = new Label("Họ và tên");
         fullNameLabel.getStyleClass().add("form-label");
         HBox fullNameContainer = new HBox(10);
         fullNameContainer.setAlignment(Pos.CENTER_LEFT);
@@ -121,7 +122,7 @@ public class SignUpController {
         userIcon.setIconSize(20);
         userIcon.getStyleClass().add("input-icon");
         TextField fullNameField = new TextField();
-        fullNameField.setPromptText("Your Full Name");
+        fullNameField.setPromptText("Nguyễn Văn A");
         fullNameField.getStyleClass().add("text-input");
         fullNameField.setPrefWidth(310);
         fullNameContainer.getChildren().addAll(userIcon, fullNameField);
@@ -136,21 +137,22 @@ public class SignUpController {
         mailIcon.setIconSize(20);
         mailIcon.getStyleClass().add("input-icon");
         TextField emailField = new TextField();
-        emailField.setPromptText("you@example.com");
+        emailField.setPromptText("nguyenvana@gmail.com");
         emailField.getStyleClass().add("text-input");
         emailField.setPrefWidth(310);
         emailContainer.getChildren().addAll(mailIcon, emailField);
 
         // Sign up button
-        Button signupButton = new Button("Create Account");
+        Button signupButton = new Button("Đăng ký");
         signupButton.getStyleClass().add("primary-button");
         signupButton.setPrefWidth(350);
 
         // Login link
         HBox loginLinkContainer = new HBox();
         loginLinkContainer.setAlignment(Pos.CENTER);
-        Label loginLabel = new Label("Already have an account? ");
-        Hyperlink loginLink = new Hyperlink("Sign in");
+        Label loginLabel = new Label("Bạn đã có tài khoản? ");
+        loginLabel.getStyleClass().add("login-subtitle");
+        Hyperlink loginLink = new Hyperlink("Đăng nhập");
         loginLink.getStyleClass().add("link");
         loginLinkContainer.getChildren().addAll(loginLabel, loginLink);
 
@@ -172,9 +174,9 @@ public class SignUpController {
         Circle clip = new Circle(125, 125, 125); // Tọa độ tâm X, Y, Bán kính (Bán kính = 1 nửa kích thước ảnh)
         logo.setClip(clip);
 
-        Label patternTitle = new Label("Join our community");
+        Label patternTitle = new Label("Tham gia cộng đồng của chúng tôi");
         patternTitle.getStyleClass().add("pattern-title");
-        Label patternSubtitle = new Label("Connect with friends, share moments, and stay in touch with your loved ones.");
+        Label patternSubtitle = new Label("Kết nối với bạn bè, chia sẻ khoảnh khắc và luôn giữ liên lạc với những người bạn yêu thương.");
         patternSubtitle.getStyleClass().add("pattern-subtitle");
         rightPane.setAlignment(Pos.CENTER);
         rightPane.setSpacing(20);
@@ -190,17 +192,17 @@ public class SignUpController {
             String password = invisiblePasswordField.isVisible() ? invisiblePasswordField.getText() : visiblePasswordField.getText();
 
             if (username.isEmpty() || fullName.isEmpty() || email.isEmpty() || password.isEmpty()) {
-                showAlert("Error", "Please fill in all fields", Alert.AlertType.ERROR);
+                showAlert("Lỗi", "Vui lòng điền đầy đủ thông tin", Alert.AlertType.ERROR);
                 return;
             }
 
             if (password.length() < 6) {
-                showAlert("Error", "Password must be at least 6 characters", Alert.AlertType.ERROR);
+                showAlert("Lỗi", "Mật khẩu phải có ít nhất 6 ký tự", Alert.AlertType.ERROR);
                 return;
             }
 
             signupButton.setDisable(true);
-            signupButton.setText("Loading...");
+            signupButton.setText("Đang tải...");
 
             new Thread(() -> {
                 try {
@@ -248,6 +250,7 @@ public class SignUpController {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
+        ThemeService.styleDialog(alert);
         alert.showAndWait();
     }
 }

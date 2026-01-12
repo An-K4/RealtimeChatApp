@@ -151,7 +151,7 @@ public class HomeController {
             Platform.runLater(() -> {
                 onlineUserIds.add(userId);
                 if(selectedUser != null && userStatus != null){
-                    if (selectedUser.get_id().equals(userId)) userStatus.setText("Online");
+                    if (selectedUser.get_id().equals(userId)) userStatus.setText("Đang hoạt động");
                 }
                 if (allUsers != null) {
                     allUsers.stream()
@@ -168,7 +168,7 @@ public class HomeController {
             Platform.runLater(() -> {
                 onlineUserIds.remove(userId);
                 if(selectedUser != null && userStatus != null){
-                    if (selectedUser.get_id().equals(userId)) userStatus.setText("Offline");
+                    if (selectedUser.get_id().equals(userId)) userStatus.setText("Ngoại tuyến");
                 }
                 if (userListView.getItems() != null) {
                     userListView.getItems().stream()
@@ -187,20 +187,6 @@ public class HomeController {
 
         // User messages
         socketService.setOnNewMessage(message -> {
-            // ===== DEBUGGING CODE START =====
-            System.out.println("-----------------------------------------");
-            System.out.println("NEW MESSAGE RECEIVED AT: " + java.time.Instant.now());
-            System.out.println("  -> From Sender ID: '" + message.getSenderId() + "'");
-
-            if (selectedUser != null) {
-                System.out.println("  -> Current Selected User ID: '" + selectedUser.get_id() + "'");
-                boolean areIdsEqual = message.getSenderId().equals(selectedUser.get_id());
-                System.out.println("  -> Are IDs equal? " + areIdsEqual);
-            } else {
-                System.out.println("  -> Current Selected User is NULL!");
-            }
-            System.out.println("-----------------------------------------");
-            // ===== DEBUGGING CODE END =====
             if (selectedUser != null && message.getSenderId().equals(selectedUser.get_id())) {
                 messages.add(message);
                 Platform.runLater(() -> {
@@ -327,21 +313,21 @@ public class HomeController {
         HBox rightButtons = new HBox(10);
         rightButtons.setAlignment(Pos.CENTER_RIGHT);
 
-        Button settingsBtn = new Button("Settings");
+        Button settingsBtn = new Button("Cài đặt");
         settingsBtn.getStyleClass().add("nav-button");
         FontIcon settingsIcon = new FontIcon("mdi2c-cog");
         settingsIcon.setIconSize(18);
         settingsBtn.setGraphic(settingsIcon);
         settingsBtn.setOnAction(e -> showSettings());
 
-        Button profileBtn = new Button("Profile");
+        Button profileBtn = new Button("Thông tin cá nhân");
         profileBtn.getStyleClass().add("nav-button");
         FontIcon profileIcon = new FontIcon("mdi2a-account");
         profileIcon.setIconSize(18);
         profileBtn.setGraphic(profileIcon);
         profileBtn.setOnAction(e -> showProfile());
 
-        Button logoutBtn = new Button("Logout");
+        Button logoutBtn = new Button("Đăng xuất");
         logoutBtn.getStyleClass().add("nav-button");
         FontIcon logoutIcon = new FontIcon("mdi2l-logout");
         logoutIcon.setIconSize(18);
@@ -373,11 +359,11 @@ public class HomeController {
         HBox tabButtons = new HBox(10);
         tabButtons.setAlignment(Pos.CENTER);
 
-        Button usersTabBtn = new Button("Users");
+        Button usersTabBtn = new Button("Người dùng");
         usersTabBtn.getStyleClass().addAll("tab-button", "active");
         usersTabBtn.setOnAction(e -> switchTab("users", usersTabBtn));
 
-        Button groupsTabBtn = new Button("Groups");
+        Button groupsTabBtn = new Button("Nhóm");
         groupsTabBtn.getStyleClass().add("tab-button");
         groupsTabBtn.setOnAction(e -> switchTab("groups", groupsTabBtn));
 
@@ -433,13 +419,13 @@ public class HomeController {
         });
 
         // Filter
-        onlineOnlyCheck = new CheckBox("Show online only");
+        onlineOnlyCheck = new CheckBox("Hiện người dùng online");
         onlineOnlyCheck.getStyleClass().add("filter-checkbox");
         onlineOnlyCheck.selectedProperty().addListener((obs, oldVal, newVal) -> {
             updateListViewBasedOnFilterAndSearch();
         });
 
-        onlineCountLabel = new Label("(0 online)");
+        onlineCountLabel = new Label("(0 người online)");
         onlineCountLabel.getStyleClass().add("online-count");
 
         HBox filterContainer = new HBox(10);
@@ -580,9 +566,9 @@ public class HomeController {
         logo.setFitWidth(200);
         logo.setFitHeight(200);
         logo.setImage(new Image(getClass().getResource("/logo.png").toExternalForm()));
-        Label welcomeLabel = new Label("Welcome to Kma Chatty!");
+        Label welcomeLabel = new Label("Chào mừng đến với Kma Chatty!");
         welcomeLabel.getStyleClass().add("no-chat-title");
-        Label subtitleLabel = new Label("Select a conversation to start chatting");
+        Label subtitleLabel = new Label("Chọn một cuộc trò chuyện để bắt đầu");
         subtitleLabel.getStyleClass().add("no-chat-subtitle");
         noChatView.getChildren().addAll(logo, welcomeLabel, subtitleLabel);
         noChatView.setId("noChatView");
@@ -593,7 +579,7 @@ public class HomeController {
         messageInputContainer.getStyleClass().add("message-input-container");
 
         messageInput = new TextField();
-        messageInput.setPromptText("Type a message...");
+        messageInput.setPromptText("Nhập tin nhắn...");
         messageInput.getStyleClass().add("message-input");
         HBox.setHgrow(messageInput, Priority.ALWAYS);
 
@@ -668,7 +654,7 @@ public class HomeController {
             } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() -> {
-                    showAlert("Error", "Failed to load groups: " + e.getMessage(), Alert.AlertType.ERROR);
+                    showAlert("Lỗi", "Tải nhóm thất bại: " + e.getMessage(), Alert.AlertType.ERROR);
                 });
             }
         }).start();
@@ -770,7 +756,7 @@ public class HomeController {
         VBox groupInfo = new VBox(5);
         Label groupName = new Label(detailedGroup.getName());
         groupName.getStyleClass().add("chat-header-name");
-        Label memberCount = new Label(detailedGroup.getMemberCount() + " members");
+        Label memberCount = new Label(detailedGroup.getMemberCount() + " thành viên");
         memberCount.getStyleClass().add("chat-header-status");
         groupInfo.getChildren().addAll(groupName, memberCount);
 
@@ -812,7 +798,7 @@ public class HomeController {
             } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() -> {
-                    showAlert("Error", "Failed to load messages: " + e.getMessage(), Alert.AlertType.ERROR);
+                    showAlert("Lỗi", "Tải tin nhắn thất bại: " + e.getMessage(), Alert.AlertType.ERROR);
                 });
             }
         }).start();
@@ -982,6 +968,7 @@ public class HomeController {
             return null;
         });
 
+        ThemeService.styleDialog(dialog);
         dialog.showAndWait();
     }
 
@@ -1019,9 +1006,10 @@ public class HomeController {
         membersTab.setClosable(false);
 
         tabPane.getTabs().addAll(infoTab, membersTab);
+        tabPane.getStyleClass().add("dialog-tab-pane");
         dialogPane.setContent(tabPane);
         dialogPane.setPrefSize(450, 500);
-
+        ThemeService.styleDialog(dialog);
         dialog.showAndWait();
     }
 
@@ -1113,14 +1101,16 @@ public class HomeController {
         VBox content = new VBox(15);
         content.setPadding(new Insets(10));
 
-        ListView<Group.GroupMember> membersListView = new ListView<>();
+        Label headerLabel = new Label("Danh sách thành viên");
+        headerLabel.getStyleClass().add("section-label");
 
+        ListView<Group.GroupMember> membersListView = new ListView<>();
         membersListView.setCellFactory(lv -> new GroupMemberCell(group));
+        membersListView.getStyleClass().add("group-member-list");
 
         // Lấy danh sách thành viên chi tiết
         new Thread(() -> {
             try {
-                // Ta cần thông tin chi tiết của User trong GroupMember
                 Group detailedGroup = groupService.getGroupInfo(group.get_id());
                 Platform.runLater(() -> membersListView.getItems().setAll(detailedGroup.getMembers()));
             } catch (IOException e) {
@@ -1129,7 +1119,9 @@ public class HomeController {
         }).start();
 
         HBox memberActions = new HBox(10);
-        content.getChildren().addAll(new Label("Danh sách thành viên"), membersListView, memberActions);
+
+        content.getChildren().addAll(headerLabel, membersListView, memberActions);
+
         VBox.setVgrow(membersListView, Priority.ALWAYS);
         return content;
     }
@@ -1167,6 +1159,7 @@ public class HomeController {
         // Logic cho nút OK
         setupOkButton(dialog, group, nameField, descArea, selectedFile);
 
+        ThemeService.styleDialog(dialog);
         dialog.showAndWait();
     }
 
@@ -1231,9 +1224,16 @@ public class HomeController {
     private VBox createFormFields(TextField nameField, TextArea descArea) {
         VBox fieldsBox = new VBox(5);
         fieldsBox.setAlignment(Pos.CENTER_LEFT);
+
+        Label nameLabel = new Label("Tên nhóm:");
+        nameLabel.getStyleClass().add("dialog-label");
+
+        Label descLabel = new Label("Mô tả:");
+        descLabel.getStyleClass().add("dialog-label");
+
         fieldsBox.getChildren().addAll(
-                new Label("Tên nhóm:"), nameField,
-                new Label("Mô tả:"), descArea
+                nameLabel, nameField,
+                descLabel, descArea
         );
         return fieldsBox;
     }
@@ -1442,7 +1442,7 @@ public class HomeController {
             } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() -> {
-                    showAlert("Error", "Failed to load users: " + e.getMessage(), Alert.AlertType.ERROR);
+                    showAlert("Lỗi", "Tải người dùng thất bại: " + e.getMessage(), Alert.AlertType.ERROR);
                 });
             }
         }).start();
@@ -1540,7 +1540,7 @@ public class HomeController {
             VBox userInfo = new VBox(5);
             Label userName = new Label(user.getFullName());
             userName.getStyleClass().add("chat-header-name");
-            userStatus = new Label(selectedUser.isOnline() ? "Online" : "Offline");
+            userStatus = new Label(selectedUser.isOnline() ? "Đang hoạt động" : "Ngoại tuyến");
             userStatus.getStyleClass().add("chat-header-status");
             userInfo.getChildren().addAll(userName, userStatus);
 
@@ -1579,7 +1579,7 @@ public class HomeController {
                 Platform.runLater(this::renderMessages);
             } catch (Exception e) {
                 e.printStackTrace();
-                Platform.runLater(() -> showAlert("Error", "Failed to load messages: " + e.getMessage(), Alert.AlertType.ERROR));
+                Platform.runLater(() -> showAlert("Lỗi", "Tải tin nhắn thất bại: " + e.getMessage(), Alert.AlertType.ERROR));
             }
         }).start();
     }
@@ -1701,7 +1701,7 @@ public class HomeController {
         Platform.runLater(() -> {
             if (allUsers == null || onlineCountLabel == null) return;
             long count = userListView.getItems().stream().filter(User::isOnline).count();
-            onlineCountLabel.setText("(" + count + " online)");
+            onlineCountLabel.setText("(" + count + " người)");
         });
     }
 
@@ -1710,7 +1710,7 @@ public class HomeController {
     private void showProfile() {
         User currentUser = authService.getCurrentUser();
         if (currentUser == null) {
-            showAlert("Error", "User not found", Alert.AlertType.ERROR);
+            showAlert("Lỗi", "Không tìm thấy người dùng hiện tại", Alert.AlertType.ERROR);
             return;
         }
         VBox profileView = createProfileView(currentUser);
@@ -1867,10 +1867,8 @@ public class HomeController {
         themeGroup.selectedToggleProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue == lightTheme) {
                 ThemeService.setTheme(ThemeService.Theme.LIGHT);
-                applyTheme("/styles.css");
             } else if (newValue == darkTheme) {
                 ThemeService.setTheme(ThemeService.Theme.DARK);
-                applyTheme("/styles-dark.css");
             }
         });
 
@@ -1913,6 +1911,7 @@ public class HomeController {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
+        ThemeService.styleDialog(alert);
         alert.showAndWait();
     }
 
@@ -2045,7 +2044,9 @@ public class HomeController {
                 Node avatar = createAvatarNode(member.getUser().getProfilePic(), 40, 24);
 
                 VBox info = new VBox(2);
-                info.getChildren().add(new Label(member.getUser().getFullName()));
+                Label nameLabel = new Label(member.getUser().getFullName());
+                nameLabel.getStyleClass().add("user-name");
+                info.getChildren().add(nameLabel);
 
                 User currentUser = authService.getCurrentUser();
                 boolean isCurrentUserOwner = groupContext.isUserOwner(currentUser.get_id());
@@ -2057,6 +2058,7 @@ public class HomeController {
                     ComboBox<String> roleComboBox = new ComboBox<>();
                     roleComboBox.getItems().addAll("Quản trị viên", "Thành viên");
                     roleComboBox.setValue(member.isAdmin() ? "Quản trị viên" : "Thành viên");
+                    roleComboBox.getStyleClass().add("role-combo-box");
 
                     roleComboBox.setOnAction(e -> {
                         String selectedRole = roleComboBox.getValue();
@@ -2092,6 +2094,7 @@ public class HomeController {
                     "Bạn có chắc muốn đổi vai trò của " + member.getUser().getFullName() + " thành " + newRole + "?",
                     ButtonType.YES, ButtonType.NO);
 
+            ThemeService.styleDialog(confirmation);
             confirmation.showAndWait().ifPresent(response -> {
                 if (response == ButtonType.YES) {
                     new Thread(() -> {
@@ -2120,8 +2123,6 @@ public class HomeController {
             });
         }
     }
-
-
 
     private class UserListCellSimple extends ListCell<User> {
         @Override
