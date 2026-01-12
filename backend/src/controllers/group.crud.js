@@ -224,7 +224,11 @@ module.exports.getInfoGroup = async (req, res) => {
     if(!group) return res.status(404).json({ message: "Nhóm không tồn tại"});
     if(!group.isActive) return res.status(400).json({ message: "Nhóm không còn hoạt động"});
 
-    const member = group.members.find(m => m.userId._id.toString() === userId.toString());
+    const member = group.members.find(m =>
+      m.userId &&
+      m.userId._id &&
+      m.userId._id.toString() === userId.toString()
+    );
   
     if(!member) return res.status(403).json({ message: "Bạn không phải thành viên của nhóm này"});
     return res.status(200).json({ message: "Lấy thông tin nhóm thành công", group});
