@@ -1,4 +1,3 @@
-// File: com/chatty/services/MessageDeserializer.java
 package com.chatty.services;
 
 import com.chatty.models.Message;
@@ -9,16 +8,17 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.List;
 
+// lớp hỗ trợ desktop app xử lý linh hoạt dữ liệu trả về cho trường senderId từ backend (User hoặc String)
 public class MessageDeserializer implements JsonDeserializer<Message> {
 
     @Override
     public Message deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
         JsonObject jsonObject = json.getAsJsonObject();
 
-        // 1. Tạo một đối tượng Message trống
+        // tạo một đối tượng Message trống
         Message message = new Message();
 
-        // 2. Đọc và gán các trường đơn giản, kiểm tra null để an toàn
+        // đọc và gán các trường đơn giản, kiểm tra null để an toàn
         if (jsonObject.has("_id")) message.set_id(jsonObject.get("_id").getAsString());
         if (jsonObject.has("receiverId")) message.setReceiverId(jsonObject.get("receiverId").getAsString());
         if (jsonObject.has("content")) message.setContent(jsonObject.get("content").getAsString());
@@ -27,7 +27,7 @@ public class MessageDeserializer implements JsonDeserializer<Message> {
         }
         if (jsonObject.has("createdAt")) message.setCreatedAt(jsonObject.get("createdAt").getAsString());
 
-        // 3. Xử lý trường 'seenBy' (là một mảng)
+        // xử lý trường 'seenBy' (là một mảng)
         if (jsonObject.has("seenBy") && jsonObject.get("seenBy").isJsonArray()) {
             // Dùng 'context' để deserialize các kiểu phức tạp như List
             Type listType = new TypeToken<List<String>>() {}.getType();
@@ -35,7 +35,7 @@ public class MessageDeserializer implements JsonDeserializer<Message> {
             message.setSeenBy(seenByList);
         }
 
-        // 4. Xử lý logic đặc biệt cho trường 'senderId'
+        // xử lý logic đặc biệt cho trường 'senderId'
         if (jsonObject.has("senderId")) {
             JsonElement senderElement = jsonObject.get("senderId");
             User sender = new User();
@@ -51,7 +51,7 @@ public class MessageDeserializer implements JsonDeserializer<Message> {
             message.setSenderId(sender.get_id());
         }
 
-        // 5. Trả về đối tượng đã hoàn thiện
+        // trả về đối tượng đã hoàn thiện
         return message;
     }
 }

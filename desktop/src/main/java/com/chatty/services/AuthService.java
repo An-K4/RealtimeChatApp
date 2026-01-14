@@ -15,7 +15,7 @@ import java.util.List;
 public class AuthService {
     private final ApiService apiService;
     private final UserService userService;
-    private String sessionCookie;
+    private String sessionCookie; // chưa phát triển
     private User currentUser;
 
     public AuthService() {
@@ -24,6 +24,7 @@ public class AuthService {
         this.sessionCookie = loadSessionCookie();
     }
 
+    // xác thực người dùng, phục vụ đăng nhập tự động
     public User checkAuth() {
         if(ApiService.authToken == null || ApiService.authToken.isEmpty()) return  null;
 
@@ -49,6 +50,7 @@ public class AuthService {
         return null;
     }
 
+    // logic đăng nhập
     public User login(String username, String password) throws IOException {
         JsonObject loginData = new JsonObject();
         loginData.addProperty("username", username);
@@ -79,6 +81,7 @@ public class AuthService {
         return user;
     }
 
+    // logic đăng ký
     public User signup(String username, String fullName, String email, String password) throws IOException {
         JsonObject signupData = new JsonObject();
         signupData.addProperty("username", username);
@@ -90,6 +93,7 @@ public class AuthService {
         return user;
     }
 
+    // logic đăng xuất
     public void logout() {
         try {
             JsonObject empty = new JsonObject();

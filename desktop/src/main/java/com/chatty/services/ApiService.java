@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+// lớp đóng vai trò trung gian giao tiếp với backend
 public class ApiService {
     private static final String BASE_URL = "http://localhost:3000";
     private final OkHttpClient client;
@@ -22,7 +23,6 @@ public class ApiService {
         this.gson = new Gson();
     }
 
-    // Simple in-memory cookie jar
     private static class MemoryCookieJar implements CookieJar {
         private final ConcurrentHashMap<String, List<Cookie>> cookieStore = new ConcurrentHashMap<>();
 
@@ -38,6 +38,7 @@ public class ApiService {
         }
     }
 
+    // GET
     public <T> T get(String endpoint, Class<T> responseClass) throws IOException {
         return get(endpoint, responseClass, null);
     }
@@ -46,9 +47,7 @@ public class ApiService {
         Request.Builder requestBuilder = new Request.Builder()
                 .url(BASE_URL + endpoint)
                 .get();
-        // Cookies are handled by CookieJar automatically
 
-        // Check token to add header
         if(authToken != null){
             requestBuilder.addHeader("Authorization", "Bearer " + authToken);
         }
@@ -66,6 +65,7 @@ public class ApiService {
         }
     }
 
+    // POST
     public <T> T post(String endpoint, Object body, Class<T> responseClass) throws IOException {
         String json = gson.toJson(body);
         RequestBody requestBody = RequestBody.create(json, MediaType.get("application/json; charset=utf-8"));
@@ -75,7 +75,6 @@ public class ApiService {
                 .post(requestBody)
                 .addHeader("Content-Type", "application/json");
 
-        // Check token to add header
         if(authToken != null){
             requestBuilder.addHeader("Authorization", "Bearer " + authToken);
         }
@@ -92,6 +91,7 @@ public class ApiService {
         }
     }
 
+    // PUT
     public <T> T put(String endpoint, Object body, Class<T> responseClass) throws IOException {
         String json = gson.toJson(body);
         RequestBody requestBody = RequestBody.create(json, MediaType.get("application/json; charset=utf-8"));
@@ -101,7 +101,6 @@ public class ApiService {
                 .put(requestBody)
                 .addHeader("Content-Type", "application/json");
 
-        // Thêm Authorization header nếu đã có token
         if (authToken != null) {
             requestBuilder.addHeader("Authorization", "Bearer " + authToken);
         }
@@ -122,13 +121,14 @@ public class ApiService {
         }
     }
 
+    // PATCH
     public <T> T patch(String endpoint, Object body, Class<T> responseClass) throws IOException {
         String json = gson.toJson(body);
         RequestBody requestBody = RequestBody.create(json, MediaType.get("application/json; charset=utf-8"));
 
         Request.Builder requestBuilder = new Request.Builder()
                 .url(BASE_URL + endpoint)
-                .patch(requestBody) // <-- Dùng .patch()
+                .patch(requestBody)
                 .addHeader("Content-Type", "application/json");
 
         if (authToken != null) {
@@ -154,13 +154,12 @@ public class ApiService {
     }
 
     public <T> T postMultipart(String endpoint, java.io.File file, Class<T> responseClass) throws IOException {
-        // Tạo một multipart body
         RequestBody requestBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart(
-                        "file", // <-- "fieldname để là file"
+                        "file",
                         file.getName(),
-                        RequestBody.create(file, MediaType.parse("image/*")) // Tự động nhận diện kiểu file ảnh
+                        RequestBody.create(file, MediaType.parse("image/*"))
                 )
                 .build();
 
@@ -185,12 +184,12 @@ public class ApiService {
         }
     }
 
+    // DELETE
     public <T> T delete(String endpoint, Class<T> responseClass) throws IOException {
         Request.Builder requestBuilder = new Request.Builder()
                 .url(BASE_URL + endpoint)
                 .delete();
 
-        // Thêm Authorization header nếu đã có token
         if (authToken != null) {
             requestBuilder.addHeader("Authorization", "Bearer " + authToken);
         }
@@ -205,7 +204,7 @@ public class ApiService {
 
             String responseJson = response.body() != null ? response.body().string() : "";
             if (responseJson.isEmpty() || responseClass == Void.class) {
-                return null; // Hoặc throw nếu bạn muốn bắt buộc phải có response body
+                return null;
             }
             if (responseClass == String.class) {
                 return (T) responseJson;

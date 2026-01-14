@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// phục vụ quản lý các hoạt động liên quan đến nhóm
 public class GroupService {
     private final ApiService apiService;
     private final SocketService socketService;
@@ -29,9 +30,7 @@ public class GroupService {
 
     // ==================== GROUP CRUD ====================
 
-    /**
-     * Lấy danh sách tất cả nhóm của user
-     */
+    // lấy danh sách tất cả các nhóm của người dùng
     public List<Group> getGroups() throws IOException {
         try {
             JsonObject response = apiService.get("/groups/getGroups", JsonObject.class, null);
@@ -49,12 +48,7 @@ public class GroupService {
         }
     }
 
-    /**
-     * Tạo nhóm mới
-     * @param name Tên nhóm
-     * @param description Mô tả
-     * @param memberIds Danh sách ID thành viên
-     */
+    // tạo nhóm
     public Group createGroup(String name, String description, List<String> memberIds) throws IOException {
         try {
             JsonObject payload = new JsonObject();
@@ -72,7 +66,7 @@ public class GroupService {
             if (response != null && response.has("group")) {
                 Group group = gson.fromJson(response.get("group"), Group.class);
 
-                // Auto join group room sau khi tạo
+                // tự động tham gia vào nhóm sau khi tạo
                 if (group != null) {
                     socketService.joinGroup(group.get_id());
                 }
@@ -87,9 +81,7 @@ public class GroupService {
         }
     }
 
-    /**
-     * Cập nhật thông tin nhóm
-     */
+    // cập nhật thông tin nhóm
     public void updateGroup(String groupId, String newName, String newDesc, String newAvatarUrl) throws IOException {
         Map<String, Object> updateData = new HashMap<>();
         updateData.put("name", newName);
@@ -99,9 +91,7 @@ public class GroupService {
         apiService.patch("/groups/update/" + groupId, updateData, Void.class);
     }
 
-    /**
-     * Lấy thông tin chi tiết nhóm
-     */
+    // lấy thông tin chi tiết của nhóm
     public Group getGroupInfo(String groupId) throws IOException {
         try {
             JsonObject response = apiService.get("/groups/" + groupId, JsonObject.class, null);
@@ -117,16 +107,11 @@ public class GroupService {
         }
     }
 
-    /**
-     * Xóa nhóm (nếu là owner) hoặc rời nhóm (nếu là member)
-     */
+    // xóa nhóm (với owner) hoặc rời nhóm (với admin/member)
     public boolean deleteGroup(String groupId) throws IOException {
         try {
             apiService.delete("/groups/delete/" + groupId, JsonObject.class);
-
-            // Leave group room
             socketService.leaveGroup(groupId);
-
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -136,9 +121,7 @@ public class GroupService {
 
     // ==================== GROUP MESSAGES ====================
 
-    /**
-     * Lấy danh sách tin nhắn trong nhóm
-     */
+    // lấy toàn bộ tin nhắn nhóm
     public List<GroupMessage> getGroupMessages(String groupId) throws IOException {
         try {
             JsonObject response = apiService.get("/groups/" + groupId + "/messages", JsonObject.class, null);
@@ -156,23 +139,20 @@ public class GroupService {
         }
     }
 
-    /**
-     * Gửi tin nhắn trong nhóm qua Socket
-     * Trả về local message để hiển thị ngay trên UI
-     */
+    // gửi tin nhắn nhóm
     public GroupMessage sendGroupMessage(String groupId, String content) {
         if (content == null || content.trim().isEmpty()) {
             return null;
         }
 
-        // Create local message for immediate UI feedback
+        // tạo tin nhắn cục bộ để cập nhật UI ngay lập tức
         GroupMessage localMsg = new GroupMessage();
         localMsg.set_id(String.valueOf(System.currentTimeMillis()));
         localMsg.setGroupId(groupId);
         localMsg.setContent(content);
         localMsg.setCreatedAt(Instant.now().toString());
 
-        // Send via socket
+        // gửi tin nhắn qua socket
         socketService.sendGroupMessage(groupId, content);
 
         return localMsg;
@@ -180,9 +160,7 @@ public class GroupService {
 
     // ==================== GROUP MEMBERS ====================
 
-    /**
-     * Lấy danh sách thành viên nhóm
-     */
+    // lấy danh sách thành viên của nhóm
     public List<Group.GroupMember> getGroupMembers(String groupId) throws IOException {
         try {
             JsonObject response = apiService.get("/groups/" + groupId + "/getMembers", JsonObject.class, null);
@@ -200,9 +178,7 @@ public class GroupService {
         }
     }
 
-    /**
-     * Thêm thành viên vào nhóm
-     */
+    // thêm thành viên vào nhóm
     public boolean addMembers(String groupId, List<String> memberIds) throws IOException {
         try {
             JsonObject payload = new JsonObject();
@@ -220,9 +196,7 @@ public class GroupService {
         }
     }
 
-    /**
-     * Xóa thành viên khỏi nhóm (chỉ admin)
-     */
+    // xóa thành viên khỏi nhóm (dành cho owner và admin)
     public boolean removeMember(String groupId, String memberId) throws IOException {
         try {
             apiService.delete("/groups/" + groupId + "/deleteMembers/" + memberId, JsonObject.class);
@@ -233,9 +207,7 @@ public class GroupService {
         }
     }
 
-    /**
-     * Đổi quyền thành viên (chỉ owner)
-     */
+    // phân quyền thành viên nhóm (dành cho owner)
     public boolean changeRole(String groupId, String memberId, String newRole) throws IOException {
         try {
             JsonObject payload = new JsonObject();
@@ -249,7 +221,7 @@ public class GroupService {
         }
     }
 
-    // Lớp nội bộ đơn giản để Gson parse JSON response của việc upload
+    // lớp nội bộ đơn giản để Gson parse JSON response của việc upload
     private static class UploadResponse {
         private String url;
 
@@ -258,6 +230,7 @@ public class GroupService {
         }
     }
 
+    // đẩy ảnh đại diện nhóm lên đám mây
     public String uploadGroupAvatar(File file) throws IOException {
         UploadResponse response = apiService.postMultipart("/messages/upload", file, UploadResponse.class);
         if (response != null && response.getUrl() != null) {
@@ -266,41 +239,31 @@ public class GroupService {
         throw new IOException("API không trả về URL của ảnh sau khi upload.");
     }
 
-    // ==================== TYPING INDICATORS ====================
+    // ==================== TYPING INDICATORS (CHƯA HOÀN THIỆN) ====================
 
-    /**
-     * Emit typing start trong nhóm
-     */
+    // báo hiệu bắt đầu nhập tin
     public void startTyping(String groupId) {
         socketService.emitGroupTypingStart(groupId);
     }
 
-    /**
-     * Emit typing stop trong nhóm
-     */
+    // báo hiệu dừng nhập tin
     public void stopTyping(String groupId) {
         socketService.emitGroupTypingStop(groupId);
     }
 
-    /**
-     * Emit seen message trong nhóm
-     */
+    // báo hiệu đã xem tin nhắn
     public void markMessageAsSeen(String messageId, String groupId) {
         socketService.emitSeenGroupMessage(messageId, groupId);
     }
 
     // ==================== HELPER METHODS ====================
 
-    /**
-     * Join group room để nhận real-time events
-     */
+    // tham gia nhóm
     public void joinGroupRoom(String groupId) {
         socketService.joinGroup(groupId);
     }
 
-    /**
-     * Leave group room
-     */
+    // rời nhóm
     public void leaveGroupRoom(String groupId) {
         socketService.leaveGroup(groupId);
     }

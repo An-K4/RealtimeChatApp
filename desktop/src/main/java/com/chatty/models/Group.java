@@ -17,15 +17,18 @@ public class Group {
     private int unreadCount; // Sửa từ IntegerProperty thành int
     private LastMessage lastMessage;
 
-    // Các Property này là "transient" - GSON sẽ bỏ qua chúng
-    // Chúng chỉ dùng để binding với giao diện JavaFX
+    // các property này là "transient" - GSON sẽ bỏ qua chúng
+    // property cho trạng thái đã gửi, đã xem
     private final transient StringProperty statusPreview = new SimpleStringProperty("");
+
+    // property cho trạng thái đang soạn tin
     private final transient BooleanProperty isTyping = new SimpleBooleanProperty(false);
 
+    // lớp dung để hứng dữ liệu danh sách thành viên nhóm từ backend
     public static class GroupMember {
         @SerializedName("userId")
-        private User user; // Có thể là object User hoặc chỉ String ID
-        private String role; // "admin" hoặc "member"
+        private User user;
+        private String role; // owner, admin, member
         private String joinedAt;
 
         public GroupMember() {}
@@ -59,6 +62,7 @@ public class Group {
         }
     }
 
+    // lớp hứng dữ liệu về tin nhắn cuối cùng trong nhóm trả về từ backend
     public static class LastMessage {
         private String content;
         private String createdAt;
@@ -100,7 +104,7 @@ public class Group {
 
     public Group() {}
 
-    // Update status preview (giống User model)
+    // logic cập nhật trạng thái tin nhắn cuối trong nhóm
     public void updateStatusPreview() {
         if (isTyping.get()) {
             statusPreview.set("Đang soạn tin...");

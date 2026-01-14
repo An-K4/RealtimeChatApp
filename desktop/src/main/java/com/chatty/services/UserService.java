@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import java.io.File;
 import java.io.IOException;
 
+// lớp phục vụ các thao tác liên quan đến người dùng
 public class UserService {
     private final ApiService apiService;
     private final Gson gson;
@@ -16,17 +17,12 @@ public class UserService {
         this.gson = new Gson();
     }
 
-    // Class nội bộ để parse response khi upload ảnh (lấy URL)
+    // lớp nội bộ để parse response khi upload ảnh (lấy URL)
     private static class UploadResponse {
         String url;
     }
 
-    /**
-     * Quy trình cập nhật Avatar toàn diện:
-     * 1. Upload file ảnh lên server file (Multipart)
-     * 2. Lấy URL trả về
-     * 3. Gọi API update user info để lưu URL mới
-     */
+    // cập nhật avatar
     public String updateUserAvatar(File file) throws IOException {
         UploadResponse uploadRes = apiService.postMultipart("/messages/upload", file, UploadResponse.class);
 
@@ -43,6 +39,7 @@ public class UserService {
         return newAvatarUrl;
     }
 
+    // đổi mật khẩu
     public void changePassword(String oldPassword, String newPassword) throws IOException {
         JsonObject payload = new JsonObject();
         payload.addProperty("oldPassword", oldPassword);
@@ -50,6 +47,7 @@ public class UserService {
         apiService.post("/users/change-password", payload, JsonObject.class);
     }
 
+    // lấy thông tin chi tiết
     public User getCurrentUserInfo() throws IOException {
         try {
             JsonObject response = apiService.get("/auth/me", JsonObject.class, null);

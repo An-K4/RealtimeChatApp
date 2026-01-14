@@ -5,6 +5,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
+// chứa toàn bộ thông tin 1 người dùng cụ thể
 public class User {
     private String _id;
     private String username;
@@ -13,11 +14,18 @@ public class User {
     private String avatar;
     private String token;
 
+    // các property khi nhắn tin cá nhân
+
+    // property báo online
     private final BooleanProperty isOnline = new SimpleBooleanProperty(false);
+    // property báo đang nhập
     private final BooleanProperty isTyping = new SimpleBooleanProperty(false);
+    // property báo trạng thái tin nhắn (đã xem/ đã gửi)
     private final StringProperty statusPreview = new SimpleStringProperty("");
 
+    // đếm số tin chưa đọc
     private int unreadCount;
+    // chứa dữ liệu về tin nhắn cuối cùng trong cuộc trò chuyện
     private LastMessage lastMessage;
 
     public User() {}
@@ -30,6 +38,7 @@ public class User {
         this.avatar = avatar;
     }
 
+    // lớp hứng dữ liệu tin nhắn cuối cùng khi nhắn tin cá nhân từ backend
     public static class LastMessage{
         private String content;
         private String createdAt;
@@ -60,6 +69,7 @@ public class User {
         }
     }
 
+    // hàm cập nhật trạng thái nhắn tin
     public void updateStatusPreview(){
         if(isTyping.get()){
             statusPreview.set("Đang soạn tin...");
@@ -76,6 +86,8 @@ public class User {
             }
         }
     }
+
+    // các getter và setter
 
     public String getToken() {
         return token;

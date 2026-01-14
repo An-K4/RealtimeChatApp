@@ -3,17 +3,17 @@ package com.chatty.models;
 import java.util.ArrayList;
 import java.util.List;
 
+// hứng dữ liệu tin nhắn và phục vụ gửi nhận tin nhắn
 public class Message {
     private String _id;
-    private String senderId; // Kiểu dữ liệu bây giờ là User object
+    private String senderId;
     private String receiverId;
     private String content;
-    private String image;
+    private String image; // gửi nhận tin nhắn chứa ảnh (chưa phát triển)
     private String createdAt;
     private List<String> seenBy = new ArrayList<>();
 
-    public Message() {
-    }
+    public Message() {}
 
     public String get_id() {
         return _id;

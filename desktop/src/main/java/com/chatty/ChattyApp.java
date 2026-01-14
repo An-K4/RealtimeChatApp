@@ -11,7 +11,7 @@ public class ChattyApp extends Application {
     @Override
     public void start(Stage primaryStage) {
         AuthService authService = new AuthService();
-        User user = authService.checkAuth();
+        User user = authService.checkAuth();    // lấy người dùng đã từng đăng nhập trước đó
 
         primaryStage.sceneProperty().addListener((observable, oldScene, newScene) -> {
             if (newScene != null) {
@@ -19,12 +19,12 @@ public class ChattyApp extends Application {
             }
         });
 
-        // Check if user is already authenticated
+        // kiểm tra xem người dùng đã được xác định (có token) chưa
         if (user != null) {
-            // Show home page
+            // chuyển hướng vào trang chủ
             new com.chatty.controllers.HomeController().show(primaryStage, user);
         } else {
-            // Show login page
+            // chuyển hướng ra đăng nhập
             new LoginController().show(primaryStage);
         }
     }

@@ -25,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+// trang chủ
 public class HomeController {
     private final AuthService authService;
     private final ChatService chatService;
@@ -33,14 +34,14 @@ public class HomeController {
     private final UserService userService;
     private final User currentUser;
 
-    // User chat
+    // nhắn tin cá nhân
     private User selectedUser;
     private List<User> allUsers;
     private List<User> currentDisplayedUsers;
     private List<User> latestSearchResults;
     private List<Message> messages;
 
-    // Group chat
+    // nhắn tin nhóm
     private Group selectedGroup;
     private List<Group> allGroups;
     private List<GroupMessage> groupMessages;
@@ -50,7 +51,7 @@ public class HomeController {
     private Timer groupTypingTimer;
     private Timer searchDebounceTimer;
 
-    // UI components
+    // các thành phần giao diện
     private VBox messageContainer;
     private ScrollPane messageScrollPane;
     private TextField messageInput;
@@ -67,8 +68,8 @@ public class HomeController {
     private Label userStatus;
     private Label typingIndicator;
 
-    // Tab control
-    private String currentTab = "users"; // "users" or "groups"
+    // biến theo dõi tab đang hiện trên giao diện
+    private String currentTab = "users"; // "users" hoặc "groups"
 
     public HomeController() {
         this.authService = new AuthService();
@@ -111,6 +112,7 @@ public class HomeController {
 
         mainContainer.setCenter(centerContent);
 
+        // tải người dùng và nhóm có liên quan
         loadUsers();
         loadGroups();
 
@@ -131,7 +133,7 @@ public class HomeController {
     }
 
     private void setupSocketListeners() {
-        // Online list
+        // danh sách online
         socketService.setOnOnlineListReceived(onlineIds -> {
             Platform.runLater(() -> {
                 onlineUserIds.clear();
@@ -141,13 +143,17 @@ public class HomeController {
                     for (User u : allUsers) {
                         u.setOnline(onlineUserIds.contains(u.get_id()));
                     }
+
+                    // vẽ giao diện để hiện danh sách người dùng
                     updateListViewBasedOnFilterAndSearch();
+
+                    // cập nhật các nhãn người dùng có tin chưa đọc
                     updateOnlineCountLabel();
                 }
             });
         });
 
-        // User online/offline
+        // có người dùng online
         socketService.setOnUserOnline(userId -> {
             Platform.runLater(() -> {
                 onlineUserIds.add(userId);
@@ -159,12 +165,15 @@ public class HomeController {
                             .filter(u -> u.get_id().equals(userId))
                             .findFirst()
                             .ifPresent(u -> u.setOnline(true));
+
+                    // cập nhật giao diện
                     updateListViewBasedOnFilterAndSearch();
                     updateOnlineCountLabel();
                 }
             });
         });
 
+        // có người dùng offline
         socketService.setOnUserOffline(userId -> {
             Platform.runLater(() -> {
                 onlineUserIds.remove(userId);
@@ -176,39 +185,49 @@ public class HomeController {
                             .filter(u -> u.get_id().equals(userId))
                             .findFirst()
                             .ifPresent(u -> u.setOnline(false));
+
+                    // cập nhật giao diện
                     updateListViewBasedOnFilterAndSearch();
                     updateOnlineCountLabel();
                 }
             });
         });
 
-        // User typing
+        // gửi thông báo đang soạn tin (bắt đầu/kết thúc soạn)
         socketService.setOnTypingStart(senderId -> updateUserTypingStatus(senderId, true));
         socketService.setOnTypingStop(senderId -> updateUserTypingStatus(senderId, false));
 
-        // User messages
+        // có tin nhắn mới đến
         socketService.setOnNewMessage(message -> {
             if (selectedUser != null && message.getSenderId().equals(selectedUser.get_id())) {
+                // nếu đang chat cùng mà có tin mới
                 messages.add(message);
                 Platform.runLater(() -> {
+
+                    // vẽ lại giao diện chat để hiện tin mới
                     renderMessages();
-                    socketService.emitSeenMessage(selectedUser.get_id());
+                    socketService.emitSeenMessage(selectedUser.get_id()); // gửi thông báo đã xem tin nhắn
                 });
             } else {
+                // nếu đang không chat cùng mà có tin mới
                 Platform.runLater(() -> {
                     String senderId = message.getSenderId();
                     this.allUsers.stream()
                             .filter(u -> u.get_id().equals(senderId))
                             .findFirst()
                             .ifPresent(u -> {
+                                // cập nhật số tin chưa đọc và làm mới giao diện danh sách người dùng
                                 u.setUnreadCount(u.getUnreadCount() + 1);
                                 userListView.refresh();
                             });
                 });
             }
+
+            // trong trường hợp nào cũng vẽ lại giao diện để cập nhật nội dung preview tin nhắn mới nhất
             updateSidebarLastMessage(message);
         });
 
+        // khi người khác xem tin nhắn của mình lúc đang chat
         socketService.setOnMessageSeen(data -> {
             Platform.runLater(() -> {
                 String viewerId = data.get("viewerId").getAsString();
@@ -223,19 +242,19 @@ public class HomeController {
 
         // ===== GROUP LISTENERS =====
 
-        // Receive group message
+        // nhận tin nhắn mới của nhóm
         socketService.setOnNewGroupMessage(message -> {
             Platform.runLater(() -> {
-                // Update group list
+                // cập nhật danh sách nhóm
                 loadGroups();
 
-                // If viewing this group, add message
+                // nếu đang mở giao diện chat của group, vẽ lại giao diện để hiện tin mới
                 if (selectedGroup != null && message.getGroupId().equals(selectedGroup.get_id())) {
                     groupMessages.add(message);
                     renderGroupMessages();
                     socketService.emitSeenGroupMessage(message.get_id(), selectedGroup.get_id());
                 } else {
-                    // Update unread count
+                    // nếu không chat với group, cập nhật số tin chưa đọc
                     allGroups.stream()
                             .filter(g -> g.get_id().equals(message.getGroupId()))
                             .findFirst()
@@ -247,7 +266,7 @@ public class HomeController {
             });
         });
 
-        // Group typing
+        // Group typing (chưa hoàn thiện)
         socketService.setOnGroupTypingStart(senderName -> {
             Platform.runLater(() -> {
                 if (typingIndicator != null && selectedGroup != null) {
@@ -265,14 +284,14 @@ public class HomeController {
             });
         });
 
-        // Group message seen
+        // có người xem tin nhắn đã gửi trong nhóm
         socketService.setOnGroupMessageSeen(data -> {
             Platform.runLater(() -> {
                 try {
                     String messageId = data.get("messageId").getAsString();
                     String userId = data.get("userId").getAsString();
 
-                    // Update local message list
+                    // cập nhật các biến giao diện để hiện người đã xem
                     boolean updated = false;
                     for (GroupMessage msg : groupMessages) {
                         if (msg.get_id().equals(messageId)) {
@@ -288,6 +307,7 @@ public class HomeController {
                     }
 
                     if (updated) {
+                        // vẽ lại giao diện
                         renderGroupMessages();
                     }
                 } catch (Exception e) {
@@ -296,7 +316,7 @@ public class HomeController {
             });
         });
 
-        // Reload groups when created/deleted
+        // tải lại nhóm nếu có nhóm được tạo/bị xóa/bị kick
         socketService.setOnGroupCreated(data -> {
             Platform.runLater(this::loadGroups);
         });
@@ -318,6 +338,7 @@ public class HomeController {
         });
     }
 
+    // tạo thanh điều hướng của ứng dụng (tên ứng dụng, nút cài đặt, nút xem profile, nút đăng xuất)
     private HBox createNavbar(Stage stage) {
         HBox navbar = new HBox(20);
         navbar.setPadding(new Insets(15, 30, 15, 30));
@@ -336,6 +357,7 @@ public class HomeController {
         HBox rightButtons = new HBox(10);
         rightButtons.setAlignment(Pos.CENTER_RIGHT);
 
+        // nút cài đặt
         Button settingsBtn = new Button("Cài đặt");
         settingsBtn.getStyleClass().add("nav-button");
         FontIcon settingsIcon = new FontIcon("mdi2c-cog");
@@ -343,6 +365,7 @@ public class HomeController {
         settingsBtn.setGraphic(settingsIcon);
         settingsBtn.setOnAction(e -> showSettings());
 
+        // nút xem profile
         Button profileBtn = new Button("Thông tin cá nhân");
         profileBtn.getStyleClass().add("nav-button");
         FontIcon profileIcon = new FontIcon("mdi2a-account");
@@ -350,6 +373,7 @@ public class HomeController {
         profileBtn.setGraphic(profileIcon);
         profileBtn.setOnAction(e -> showProfile());
 
+        // nút đăng xuất
         Button logoutBtn = new Button("Đăng xuất");
         logoutBtn.getStyleClass().add("nav-button");
         FontIcon logoutIcon = new FontIcon("mdi2l-logout");
@@ -368,17 +392,17 @@ public class HomeController {
         return navbar;
     }
 
+    // tạo vùng bên trái (thanh chuyển tab người dùng/nhóm, thanh tìm kiếm, danh sách người dùng/nhóm)
     private VBox createSidebar() {
         VBox sidebar = new VBox();
         sidebar.setPrefWidth(280);
         sidebar.getStyleClass().add("sidebar");
 
-        // Header with tabs
         VBox sidebarHeader = new VBox(15);
         sidebarHeader.setPadding(new Insets(20));
         sidebarHeader.getStyleClass().add("sidebar-header");
 
-        // Tab buttons
+        // tabs
         HBox tabButtons = new HBox(10);
         tabButtons.setAlignment(Pos.CENTER);
 
@@ -392,7 +416,7 @@ public class HomeController {
 
         tabButtons.getChildren().addAll(usersTabBtn, groupsTabBtn);
 
-        // Search box
+        // hộp tìm kiếm
         HBox searchBox = new HBox(10);
         searchBox.setAlignment(Pos.CENTER_LEFT);
         searchBox.getStyleClass().add("input-search");
@@ -410,6 +434,7 @@ public class HomeController {
         searchStatusLabel.setMaxWidth(Double.MAX_VALUE);
         searchStatusLabel.setVisible(false);
 
+        // logic tìm kiếm được gọi bất kì khi nào nhận thấy sự thay đổi trong trường nhập liệu
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
             if (searchDebounceTimer != null) {
                 searchDebounceTimer.cancel();
@@ -441,7 +466,7 @@ public class HomeController {
             }, 500);
         });
 
-        // Filter
+        // logic hiện (ẩn) người dùng online khi checkbox được chọn (chỉ có bên tab người dùng)
         onlineOnlyCheck = new CheckBox("Hiện người dùng online");
         onlineOnlyCheck.getStyleClass().add("filter-checkbox");
         onlineOnlyCheck.selectedProperty().addListener((obs, oldVal, newVal) -> {
@@ -454,7 +479,7 @@ public class HomeController {
         HBox filterContainer = new HBox(10);
         filterContainer.getChildren().addAll(onlineOnlyCheck, onlineCountLabel);
 
-        // Create group button (shown only in groups tab)
+        // nút tạo nhóm (chỉ có bên tab nhóm)
         Button createGroupBtn = new Button("+ Tạo nhóm");
         createGroupBtn.getStyleClass().add("btn-primary");
         createGroupBtn.setMaxWidth(Double.MAX_VALUE);
@@ -463,11 +488,9 @@ public class HomeController {
         createGroupBtn.setOnAction(e -> showCreateGroupDialog());
 
         sidebarHeader.getChildren().addAll(tabButtons, searchBox, filterContainer, createGroupBtn);
-
-        // Store reference for tab switching
         sidebarHeader.setId("sidebarHeader");
 
-        // Lists
+        // danh sách người dùng
         userListView = new ListView<>();
         userListView.setCellFactory(list -> new UserListCell());
         userListView.getStyleClass().add("user-list");
@@ -478,6 +501,7 @@ public class HomeController {
             }
         });
 
+        // danh sách nhóm
         groupListView = new ListView<>();
         groupListView.setCellFactory(list -> new GroupListCell());
         groupListView.getStyleClass().add("user-list");
@@ -490,6 +514,7 @@ public class HomeController {
             }
         });
 
+        // tạo khung chứa chung để thay phiên ẩn hiện danh sách người dùng/nhóm mỗi khi chuyển tab
         StackPane listStack = new StackPane();
         VBox.setVgrow(listStack, Priority.ALWAYS);
         StackPane.setAlignment(searchStatusLabel, Pos.CENTER);
@@ -500,10 +525,11 @@ public class HomeController {
         return sidebar;
     }
 
+    // logic chuyển tab
     private void switchTab(String tab, Button clickedBtn) {
         currentTab = tab;
 
-        // Update button styles
+        // cập nhật trạng thái nút bấm khi được nhấn (vd: nhấn vào tab nhóm -> nút có khung xanh được chọn)
         VBox sidebarHeader = (VBox) clickedBtn.getParent().getParent();
         HBox tabButtons = (HBox) clickedBtn.getParent();
         tabButtons.getChildren().forEach(node -> {
@@ -513,11 +539,11 @@ public class HomeController {
         });
         clickedBtn.getStyleClass().add("active");
 
-        // Clear search
+        // dọn dẹp nội dung trong thanh tìm kếm
         searchField.setText("");
         searchStatusLabel.setVisible(false);
 
-        // Show/hide lists and buttons
+        // ẩn hiện danh sách và nút bấm phù hợp
         Button createGroupBtn = (Button) sidebarHeader.lookup(".btn-primary");
 
         if (tab.equals("users")) {
@@ -551,11 +577,12 @@ public class HomeController {
         }
     }
 
+    // tạo vùng nhắn tin (phần bên phải)
     private VBox createChatArea() {
         VBox chatArea = new VBox();
         chatArea.getStyleClass().add("chat-area");
 
-        // Chat header
+        // thanh đầu mục chat (hiển thị thông tin người/nhóm đang nhắn, nút đóng)
         HBox chatHeader = new HBox(15);
         chatHeader.setPadding(new Insets(15, 20, 15, 20));
         chatHeader.getStyleClass().add("chat-header");
@@ -563,7 +590,7 @@ public class HomeController {
         chatHeader.setManaged(false);
         chatHeader.setId("chatHeader");
 
-        // Messages container
+        // khung giao diện chính hiển thị các tin nhắn
         messageScrollPane = new ScrollPane();
         messageScrollPane.setFitToWidth(true);
         messageScrollPane.getStyleClass().add("message-scroll-pane");
@@ -575,13 +602,13 @@ public class HomeController {
             messageScrollPane.setVvalue(1.0);
         });
 
-        // Typing indicator
+        // Typing indicator (chưa phát triển)
         typingIndicator = new Label();
         typingIndicator.getStyleClass().add("typing-indicator");
         typingIndicator.setVisible(false);
         typingIndicator.setManaged(false);
 
-        // No chat view
+        // giao diện khi chưa chọn nhóm/người dùng để chat
         VBox noChatView = new VBox(20);
         noChatView.setAlignment(Pos.CENTER);
         noChatView.getStyleClass().add("no-chat-view");
@@ -596,7 +623,7 @@ public class HomeController {
         noChatView.getChildren().addAll(logo, welcomeLabel, subtitleLabel);
         noChatView.setId("noChatView");
 
-        // Message input
+        // thanh nhập tin nhắn
         HBox messageInputContainer = new HBox(10);
         messageInputContainer.setPadding(new Insets(15, 20, 15, 20));
         messageInputContainer.getStyleClass().add("message-input-container");
@@ -612,12 +639,12 @@ public class HomeController {
         sendButton.setGraphic(sendIcon);
         sendButton.getStyleClass().add("send-button");
 
+        // logic thực hiện khi đang nhập tin
         messageInput.textProperty().addListener((obs, oldVal, newVal) -> {
             if (selectedUser == null && selectedGroup == null) return;
 
             if (!newVal.isEmpty()) {
                 if (selectedGroup != null) {
-                    // Group typing
                     socketService.emitGroupTypingStart(selectedGroup.get_id());
 
                     if (groupTypingTimer != null) groupTypingTimer.cancel();
@@ -629,7 +656,6 @@ public class HomeController {
                         }
                     }, 2000);
                 } else if (selectedUser != null) {
-                    // User typing
                     socketService.emitStartTyping(selectedUser.get_id());
 
                     if (typingTimer != null) typingTimer.cancel();
@@ -644,6 +670,7 @@ public class HomeController {
             }
         });
 
+        // khi có sự kiện enter/bấm nút gửi ở thanh soạn tin -> gọi hàm gửi tin
         messageInput.setOnAction(e -> sendMessage());
         sendButton.setOnAction(e -> sendMessage());
 
@@ -661,6 +688,7 @@ public class HomeController {
 
     // ========== GROUP METHODS ==========
 
+    // tải danh sách nhóm liên quan
     private void loadGroups() {
         new Thread(() -> {
             try {
@@ -683,6 +711,7 @@ public class HomeController {
         }).start();
     }
 
+    // cập nhật giao diện danh sách nhóm
     private void updateGroupListView() {
         Platform.runLater(() -> {
             String searchTerm = searchField != null ? searchField.getText().trim() : "";
@@ -705,26 +734,26 @@ public class HomeController {
         });
     }
 
+    // cập nhật giao diện khi tìm kiếm nhóm
     private void performGroupSearch(String searchTerm) {
         // Simple local filter for groups
         updateGroupListView();
     }
 
+    // logic thực hiện khi chọn nhóm bất kì để chat
     private void selectGroup(Group groupFromList) {
-        // 1. Lấy ID từ đối tượng group "tóm tắt" trong danh sách
         String groupId = groupFromList.get_id();
-        this.selectedUser = null; // Clear user selection
+        this.selectedUser = null; // cập nhật biến người dùng đang chat về null
 
         groupFromList.setUnreadCount(0);
         groupListView.refresh();
 
-        // 2. Hiển thị trạng thái đang tải (tùy chọn nhưng nên có)
         showChatView();
         messageContainer.getChildren().clear();
         Label loadingLabel = new Label("Đang tải thông tin nhóm...");
         loadingLabel.getStyleClass().add("no-chat-subtitle");
         messageContainer.getChildren().add(loadingLabel);
-        // Cập nhật header tạm thời
+
         HBox chatHeader = (HBox) ((VBox) messageScrollPane.getParent()).getChildren().get(0);
         chatHeader.setVisible(true);
         chatHeader.setManaged(true);
@@ -733,19 +762,18 @@ public class HomeController {
         tempGroupName.getStyleClass().add("chat-header-name");
         chatHeader.getChildren().add(tempGroupName);
 
-        // 3. Bắt đầu một luồng mới để không làm đơ giao diện
         new Thread(() -> {
             try {
-                // 4. Gọi API để lấy thông tin chi tiết của nhóm
+                // lấy thông tin chi tiết nhóm
                 Group detailedGroup = groupService.getGroupInfo(groupId);
 
-                // 5. Sau khi có dữ liệu, quay lại luồng chính để cập nhật UI
+                // cập nhật UI ngay sau khi có dữ liệu
                 Platform.runLater(() -> {
                     if (detailedGroup != null) {
-                        // 6. Gọi hàm render UI với dữ liệu đầy đủ
+                        // render dữ liệu đầy đủ
                         renderSelectedGroupUI(detailedGroup);
                     } else {
-                        // Xử lý lỗi nếu không tìm thấy nhóm
+                        // lỗi
                         showNoChatView();
                         showAlert("Lỗi", "Không thể tải thông tin chi tiết của nhóm.", Alert.AlertType.ERROR);
                     }
@@ -760,17 +788,17 @@ public class HomeController {
         }).start();
     }
 
+    // logic vẽ giao diện nhóm được chọn để chuẩn bị chat
     private void renderSelectedGroupUI(Group detailedGroup) {
         this.selectedGroup = detailedGroup; // Cập nhật biến instance bằng dữ liệu chi tiết
 
-        // Reset unread
+        // reset số tin chưa đọc về 0
         detailedGroup.setUnreadCount(0);
         groupListView.refresh();
 
-        // Join group room
+        // tham giao vào phòng chat nhóm
         socketService.joinGroup(detailedGroup.get_id());
 
-        // Update chat header
         HBox chatHeader = (HBox) ((VBox) messageScrollPane.getParent()).getChildren().get(0);
         chatHeader.setVisible(true);
         chatHeader.setManaged(true);
@@ -791,7 +819,6 @@ public class HomeController {
         menuIcon.setIconSize(20);
         groupMenuBtn.setGraphic(menuIcon);
         groupMenuBtn.getStyleClass().add("icon-button");
-        // Quan trọng: Truyền đối tượng detailedGroup vào hàm showGroupMenu
         groupMenuBtn.setOnAction(e -> showGroupMenu(detailedGroup));
 
         Button closeBtn = new Button();
@@ -807,13 +834,14 @@ public class HomeController {
         HBox.setHgrow(groupInfo, Priority.ALWAYS);
         chatHeader.getChildren().addAll(avatarNode, groupInfo, groupMenuBtn, closeBtn);
 
-        // Hide no chat view
+        // ẩn giao diện no chat view
         showChatView();
 
-        // Load messages
+        // tải tin nhắn nhóm
         loadGroupMessages();
     }
 
+    // logic tải tin nhắn nhóm
     private void loadGroupMessages() {
         if (selectedGroup == null) return;
 
@@ -821,9 +849,10 @@ public class HomeController {
             try {
                 groupMessages = groupService.getGroupMessages(selectedGroup.get_id());
                 Platform.runLater(() -> {
+                    // vẽ giao diện khi nhận được danh sách tin nhắn
                     renderGroupMessages();
 
-                    // Emit seen logic
+                    // cập nhật trạng thái đã xem tin nhắn nhóm
                     for (GroupMessage msg : groupMessages) {
                         if (!msg.getSenderId().equals(currentUser.get_id()) && !msg.isSeenBy(currentUser.get_id())) {
                             socketService.emitSeenGroupMessage(msg.get_id(), selectedGroup.get_id());
@@ -839,10 +868,13 @@ public class HomeController {
         }).start();
     }
 
+
+    // logic vẽ giao diện tin nhắn nhóm
     private void renderGroupMessages() {
         messageContainer.getChildren().clear();
 
         for (GroupMessage msg : groupMessages) {
+            // lặp để vẽ từng tin nhắn
             boolean isMyMessage = msg.getSenderId().equals(currentUser.get_id());
 
             HBox messageBox = new HBox(10);
@@ -872,12 +904,11 @@ public class HomeController {
             if (isMyMessage) {
                 Node myAvatar = createAvatarNode(currentUser.getAvatar(), 40, 24);
 
-                // Container for message content + status
                 VBox contentWithStatus = new VBox(2);
                 contentWithStatus.setAlignment(Pos.BOTTOM_RIGHT);
                 contentWithStatus.getChildren().add(messageContent);
 
-                // Check seen status
+                // kiểm tra trạng thái đã xem các tin
                 if (msg.getSeenBy() != null && !msg.getSeenBy().isEmpty()) {
                     List<String> seenNames = new ArrayList<>();
                     for (String id : msg.getSeenBy()) {
@@ -915,6 +946,7 @@ public class HomeController {
         messageScrollPane.setVvalue(1.0);
     }
 
+    // mở giao diện tạo nhóm (gọi khi nút tạo nhóm được ấn)
     private void showCreateGroupDialog() {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Tạo nhóm mới");
@@ -923,7 +955,6 @@ public class HomeController {
         DialogPane dialogPane = dialog.getDialogPane();
         dialogPane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-        // --- UI Components ---
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
 
@@ -935,7 +966,6 @@ public class HomeController {
         descriptionArea.setWrapText(true);
         descriptionArea.setPrefRowCount(5);
 
-        // --- Member Selection ---
         VBox memberSection = new VBox(10);
         Label membersLabel = new Label("Thêm thành viên (cần ít nhất 2 người)");
 
@@ -951,9 +981,9 @@ public class HomeController {
         ScrollPane selectedMembersScrollPane = new ScrollPane(selectedMembersBox);
         selectedMembersScrollPane.setFitToHeight(true);
 
-        // --- Logic ---
         List<User> selectedMembers = new ArrayList<>();
 
+        // cập nhật danh sách người dùng để chọn thêm vào nhóm dựa theo kết quả tìm kiếm
         searchResultsView.setCellFactory(lv -> new ListCell<User>() {
             @Override
             protected void updateItem(User user, boolean empty) {
@@ -966,6 +996,7 @@ public class HomeController {
             }
         });
 
+        // thêm người dùng vào danh sách thành viên nhóm sắp tạo khi ấn chọn
         searchResultsView.setOnMouseClicked(event -> {
             User user = searchResultsView.getSelectionModel().getSelectedItem();
             if (user != null && !selectedMembers.contains(user)) {
@@ -976,12 +1007,13 @@ public class HomeController {
             }
         });
 
+        // logic thanh tìm kiếm người thêm vào nhóm
         memberSearchField.textProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal.trim().isEmpty()) {
                 searchResultsView.getItems().clear();
                 return;
             }
-            // Debounce search
+
             if (searchDebounceTimer != null) searchDebounceTimer.cancel();
             searchDebounceTimer = new Timer();
             searchDebounceTimer.schedule(new TimerTask() {
@@ -989,7 +1021,8 @@ public class HomeController {
                 public void run() {
                     try {
                         List<User> results = chatService.searchUser(newVal.trim());
-                        // Lọc ra những người đã được chọn và chính mình
+
+                        // lọc những người đã chọn và chính mình sau khi lấy kết quả tìm kiếm
                         List<User> filteredResults = results.stream()
                                 .filter(u -> !selectedMembers.contains(u) && !u.get_id().equals(currentUser.get_id()))
                                 .collect(Collectors.toList());
@@ -1005,7 +1038,6 @@ public class HomeController {
         content.getChildren().addAll(nameField, descriptionArea, memberSection);
         dialogPane.setContent(content);
 
-        // --- Dialog Action ---
         final Button okButton = (Button) dialogPane.lookupButton(ButtonType.OK);
         okButton.addEventFilter(
                 javafx.event.ActionEvent.ACTION,
@@ -1016,6 +1048,7 @@ public class HomeController {
                     }
                 });
 
+        // logic thực hiện khi người dùng nhấn ok (để tạo nhóm) hoặc thoát (để hủy tạo nhóm)
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == ButtonType.OK) {
                 new Thread(() -> {
@@ -1023,7 +1056,7 @@ public class HomeController {
                         List<String> memberIds = selectedMembers.stream().map(User::get_id).collect(Collectors.toList());
                         groupService.createGroup(nameField.getText().trim(), descriptionArea.getText().trim(), memberIds);
                         Platform.runLater(() -> {
-                            loadGroups(); // Tải lại danh sách nhóm
+                            loadGroups(); // tải lại danh sách nhóm
                         });
                     } catch (Exception e) {
                         Platform.runLater(() -> showAlert("Lỗi tạo nhóm", e.getMessage(), Alert.AlertType.ERROR));
@@ -1037,6 +1070,7 @@ public class HomeController {
         dialog.showAndWait();
     }
 
+    // hàm trợ giúp được gọi để vẽ lại giao diện danh sách người thêm vào nhóm dựa trên kết quả tìm kiếm
     private void updateSelectedMembersUI(List<User> members, HBox container) {
         container.getChildren().clear();
         for (User user : members) {
@@ -1055,6 +1089,7 @@ public class HomeController {
         }
     }
 
+    // hàm mở cửa sổ hiển thị thông tin nhóm và các thao tác với nhóm
     private void showGroupMenu(Group group) {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Quản lý nhóm: " + group.getName());
@@ -1062,7 +1097,7 @@ public class HomeController {
         DialogPane dialogPane = dialog.getDialogPane();
         dialogPane.getButtonTypes().add(ButtonType.CLOSE);
 
-        // Sử dụng TabPane để giao diện sạch sẽ
+        // chia 2 tab quản lý thông tin cơ bản của nhóm và quản lý thông tin thành viên trong nhóm
         TabPane tabPane = new TabPane();
         Tab infoTab = new Tab("Thông tin", createGroupInfoTab(group, dialog));
         Tab membersTab = new Tab("Thành viên (" + group.getMemberCount() + ")", createGroupMembersTab(group, dialog));
@@ -1078,6 +1113,7 @@ public class HomeController {
         dialog.showAndWait();
     }
 
+    // hàm trợ giúp tạo tab quản lý thông tin cơ bản của nhóm
     private Node createGroupInfoTab(Group group, Dialog<?> parentDialog) {
         VBox content = new VBox(20);
         content.setPadding(new Insets(20));
@@ -1091,28 +1127,30 @@ public class HomeController {
         descLabel.getStyleClass().add("profile-email");
         descLabel.setWrapText(true);
 
-        // --- Các nút hành động ---
+        // các nút thao tác
         HBox actionButtons = new HBox(10);
         actionButtons.setAlignment(Pos.CENTER);
 
         String currentUserId = currentUser.get_id();
 
-        // Kiểm tra ownerId không phải null TRƯỚC KHI gọi .equals()
+        // kiểm tra ownerId không phải null TRƯỚC KHI gọi .equals()
         boolean isOwner = group.isUserOwner(currentUserId);
 
-        // Hàm isUserAdmin đã an toàn vì nó xử lý danh sách members
+        // hàm isUserAdmin đã an toàn vì nó xử lý danh sách members
         boolean isAdmin = group.isUserAdmin(currentUserId);
 
-        // Nút sửa thông tin (Admin hoặc Owner)
+        // nút sửa thông tin (dành cho Admin hoặc Owner)
         if (isAdmin || isOwner) {
             Button editGroupBtn = new Button("Chỉnh sửa");
             editGroupBtn.setOnAction(e -> {
-                // Khi nhấn nút sửa, chúng ta cần lấy thông tin đầy đủ
+                // khi nhấn nút sửa, lấy thông tin đầy đủ và gọi hàm vẽ giao diện
                 new Thread(() -> {
                     try {
                         Group detailedGroup = groupService.getGroupInfo(group.get_id());
                         Platform.runLater(() -> {
-                            // parentDialog.close();
+                            // parentDialog.close(); (gọi sẽ lỗi mở cửa sổ con)
+
+                            // mở cửa sổ con chỉnh sửa thông tin nhóm
                             showEditGroupDialog(detailedGroup);
                         });
                     } catch (Exception ex) {
@@ -1123,7 +1161,7 @@ public class HomeController {
             actionButtons.getChildren().add(editGroupBtn);
         }
 
-        // Nút Rời nhóm / Xóa nhóm
+        // nút rời/xóa nhóm
         Button leaveOrDeleteBtn = new Button();
         leaveOrDeleteBtn.getStyleClass().add("danger-button");
         if (isOwner) {
@@ -1132,6 +1170,7 @@ public class HomeController {
             leaveOrDeleteBtn.setText("Rời nhóm");
         }
 
+        // logic rời/xóa nhóm
         leaveOrDeleteBtn.setOnAction(e -> {
             String confirmationText = isOwner ? "Bạn có chắc chắn muốn xóa vĩnh viễn nhóm này?" : "Bạn có chắc chắn muốn rời khỏi nhóm này?";
             Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION, confirmationText, ButtonType.YES, ButtonType.NO);
@@ -1158,11 +1197,12 @@ public class HomeController {
         return content;
     }
 
+    // hàm trợ giúp tạo tab quản lý thành viên của nhóm
     private Node createGroupMembersTab(Group group, Dialog<?> parentDialog) {
         VBox content = new VBox(15);
         content.setPadding(new Insets(10));
 
-        // Add Member Button
+        // nút thêm thành viên
         Button addMemberBtn = new Button("Thêm thành viên");
         addMemberBtn.getStyleClass().add("primary-button");
         addMemberBtn.setGraphic(new FontIcon("mdi2a-account-plus"));
@@ -1175,10 +1215,10 @@ public class HomeController {
         membersListView.setCellFactory(lv -> new GroupMemberCell(group));
         membersListView.getStyleClass().add("group-member-list");
 
-        // Lấy danh sách thành viên chi tiết
+        // lấy danh sách thành viên chi tiết và gọi hàm vẽ giao diện
         new Thread(() -> {
             try {
-                // Ta cần thông tin chi tiết của User trong GroupMember
+                // ta cần thông tin chi tiết của User trong GroupMember
                 Group detailedGroup = groupService.getGroupInfo(group.get_id());
                 Platform.runLater(() -> {
                     membersListView.getItems().setAll(detailedGroup.getMembers());
@@ -1196,6 +1236,7 @@ public class HomeController {
         return content;
     }
 
+    // hàm trợ giúp được gọi để hiển thị cửa sổ thêm thành viên khi nhấn nút thêm
     private void showAddMemberModal(Group group, Dialog<?> parentDialog) {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Thêm thành viên vào: " + group.getName());
@@ -1206,6 +1247,9 @@ public class HomeController {
         content.setPadding(new Insets(15));
         content.setPrefSize(400, 500);
 
+        Label searchLabel = new Label("Tìm kiếm người dùng:");
+        searchLabel.getStyleClass().add("dialog-label");
+
         TextField searchField = new TextField();
         searchField.setPromptText("Nhập tên người dùng để tìm kiếm...");
         searchField.getStyleClass().add("search-box");
@@ -1213,6 +1257,7 @@ public class HomeController {
         ListView<User> userListView = new ListView<>();
         java.util.Set<String> selectedUserIds = new java.util.HashSet<>();
 
+        // cấu hình vẽ từng item thành viên gồm checkbox thêm, tên người dùng
         userListView.setCellFactory(lv -> new ListCell<>() {
             private final CheckBox checkBox = new CheckBox();
             private final HBox root = new HBox(10);
@@ -1236,7 +1281,6 @@ public class HomeController {
 
                     nameLabel.setText(user.getFullName());
 
-                    // Check logic
                     boolean isMember = group.getMembers().stream()
                             .anyMatch(m -> m.getUser() != null && m.getUser().get_id().equals(user.get_id()));
 
@@ -1264,7 +1308,7 @@ public class HomeController {
             }
         });
 
-        // Search listener
+        // lắng nghe sự thay đổi nội dung nhập liệu của thanh tìm kiếm để vẽ lại danh sách người dùng
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal.length() >= 1) {
                 new Thread(() -> {
@@ -1280,6 +1324,7 @@ public class HomeController {
             }
         });
 
+        // nút xác nhận thêm và logic của nó
         Button confirmBtn = new Button("Thêm vào nhóm");
         confirmBtn.getStyleClass().add("primary-button");
         confirmBtn.setMaxWidth(Double.MAX_VALUE);
@@ -1317,23 +1362,23 @@ public class HomeController {
             }).start();
         });
 
-        content.getChildren().addAll(new Label("Tìm kiếm người dùng:"), searchField, userListView, confirmBtn);
+        content.getChildren().addAll(searchLabel, searchField, userListView, confirmBtn);
         VBox.setVgrow(userListView, Priority.ALWAYS);
 
         dialogPane.setContent(content);
         dialog.showAndWait();
     }
 
-    // --- Các Dialog con cho từng chức năng ---
+    // --- hàm trợ giúp tạo các dialog cho từng chức năng con ---
 
     private void showEditGroupDialog(Group group) {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Chỉnh sửa thông tin nhóm");
 
-        // Mảng một phần tử để lưu file được chọn từ bên trong lambda
+        // mảng một phần tử để lưu file được chọn từ bên trong lambda
         final File[] selectedFile = { null };
 
-        // Tạo các thành phần giao diện chính
+        // tạo các thành phần giao diện chính
         VBox content = createDialogLayout();
         ImageView avatarPreview = createAvatarPreview(group.getAvatar());
         Button selectAvatarBtn = createSelectAvatarButton(dialog, avatarPreview, selectedFile);
@@ -1341,7 +1386,7 @@ public class HomeController {
         TextArea descArea = createDescriptionArea(group.getDescription());
         VBox fieldsBox = createFormFields(nameField, descArea);
 
-        // Thêm các thành phần vào layout chính
+        // thêm các thành phần vào layout chính
         content.getChildren().addAll(
                 avatarPreview,
                 selectAvatarBtn,
@@ -1349,19 +1394,19 @@ public class HomeController {
                 fieldsBox
         );
 
-        // Thiết lập DialogPane
+        // thiết lập DialogPane
         DialogPane dialogPane = dialog.getDialogPane();
         dialogPane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         dialogPane.setContent(content);
 
-        // Logic cho nút OK
+        // hàm logic cho nút OK
         setupOkButton(dialog, group, nameField, descArea, selectedFile);
 
         ThemeService.styleDialog(dialog);
         dialog.showAndWait();
     }
 
-// --- CÁC HÀM TRỢ GIÚP (HELPER METHODS) ĐỂ LÀM SẠCH CODE ---
+    // --- CÁC HÀM TRỢ GIÚP ĐỂ LÀM SẠCH CODE ---
 
     private VBox createDialogLayout() {
         VBox content = new VBox(15);
@@ -1454,119 +1499,39 @@ public class HomeController {
         });
     }
 
-    /**
-     * Xử lý logic upload và cập nhật thông tin nhóm trên một luồng riêng.
-     */
+    // logic upload và cập nhật thông tin nhóm trên một luồng riêng
     private void handleUpdateGroup(Group group, String newName, String newDesc, File newAvatarFile) {
         new Thread(() -> {
             try {
                 String finalAvatarUrl = group.getAvatar();
 
-                // Bước 1: Nếu có file mới được chọn, tải nó lên và lấy URL
+                // nếu có file mới được chọn, tải nó lên và lấy URL
                 if (newAvatarFile != null) {
                     Platform.runLater(() -> showAlert("Thông báo", "Đang tải ảnh lên...", Alert.AlertType.INFORMATION));
                     finalAvatarUrl = groupService.uploadGroupAvatar(newAvatarFile);
                 }
 
-                // Bước 2: Cập nhật thông tin nhóm với dữ liệu mới
+                // cập nhật thông tin nhóm với dữ liệu mới
                 groupService.updateGroup(group.get_id(), newName, newDesc, finalAvatarUrl);
 
-                // Bước 3: Cập nhật lại giao diện trên luồng JavaFX
+                // cập nhật lại giao diện trên luồng JavaFX
                 Platform.runLater(() -> {
                     showAlert("Thành công", "Cập nhật thông tin nhóm thành công!", Alert.AlertType.INFORMATION);
-                    loadGroups(); // Tải lại danh sách nhóm
-                    // Nếu nhóm đang được chọn là nhóm vừa sửa, tải lại thông tin chi tiết
+                    loadGroups(); // tải lại danh sách nhóm
+
+                    // nếu nhóm đang được chọn là nhóm vừa sửa, tải lại thông tin chi tiết
                     if (selectedGroup != null && selectedGroup.get_id().equals(group.get_id())) {
                         selectGroup(group);
                     }
                 });
-
             } catch (Exception ex) {
-                ex.printStackTrace(); // In lỗi chi tiết ra console để gỡ lỗi
+                ex.printStackTrace();
                 Platform.runLater(() -> showAlert("Lỗi", "Cập nhật thất bại: " + ex.getMessage(), Alert.AlertType.ERROR));
             }
         }).start();
     }
 
-    private void showAddMemberDialog(Group group) {
-        // Tái sử dụng logic từ dialog tạo nhóm
-        Dialog<List<User>> dialog = new Dialog<>();
-        dialog.setTitle("Thêm thành viên");
-        DialogPane dialogPane = dialog.getDialogPane();
-        dialogPane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
-        VBox content = new VBox(10);
-        content.setPadding(new Insets(20));
-        TextField searchField = new TextField();
-        searchField.setPromptText("Tìm kiếm người dùng...");
-        ListView<User> resultsView = new ListView<>();
-        HBox selectedBox = new HBox(5);
-        ScrollPane selectedScrollPane = new ScrollPane(selectedBox);
-
-        content.getChildren().addAll(searchField, resultsView, new Label("Sẽ thêm:"), selectedScrollPane);
-        dialogPane.setContent(content);
-
-        List<User> selectedUsers = new ArrayList<>();
-        List<String> existingMemberIds = group.getMembers().stream().map(gm -> gm.getUser().get_id()).collect(Collectors.toList());
-
-        searchField.textProperty().addListener((obs, oldV, newV) -> {
-            if (newV.trim().length() < 2) {
-                resultsView.getItems().clear();
-                return;
-            }
-            new Thread(() -> {
-                try {
-                    List<User> users = chatService.searchUser(newV.trim());
-                    // Lọc những người đã ở trong nhóm hoặc đã được chọn
-                    List<User> filtered = users.stream()
-                            .filter(u -> !existingMemberIds.contains(u.get_id()) && selectedUsers.stream().noneMatch(su -> su.get_id().equals(u.get_id())))
-                            .collect(Collectors.toList());
-                    Platform.runLater(() -> resultsView.getItems().setAll(filtered));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }).start();
-        });
-
-        resultsView.setCellFactory(lv -> new UserListCellSimple());
-        resultsView.setOnMouseClicked(e -> {
-            User selected = resultsView.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                selectedUsers.add(selected);
-                updateSelectedMembersUI(selectedUsers, selectedBox);
-                resultsView.getItems().remove(selected);
-            }
-        });
-
-        dialog.setResultConverter(button -> {
-            if (button == ButtonType.OK && !selectedUsers.isEmpty()) {
-                return selectedUsers;
-            }
-            return null;
-        });
-
-        dialog.showAndWait().ifPresent(usersToAdd -> {
-            List<String> idsToAdd = usersToAdd.stream().map(User::get_id).collect(Collectors.toList());
-            new Thread(() -> {
-                try {
-                    groupService.addMembers(group.get_id(), idsToAdd);
-                    Platform.runLater(() -> {
-                        showAlert("Thành công", "Đã thêm thành viên mới.", Alert.AlertType.INFORMATION);
-                        // Tải lại thông tin nhóm
-                        if (selectedGroup != null && selectedGroup.get_id().equals(group.get_id())) {
-                            try {
-                                selectedGroup = groupService.getGroupInfo(group.get_id());
-                                selectGroup(selectedGroup);
-                            } catch (IOException e) {}
-                        }
-                    });
-                } catch (Exception e) {
-                    Platform.runLater(() -> showAlert("Lỗi", "Thêm thành viên thất bại: " + e.getMessage(), Alert.AlertType.ERROR));
-                }
-            }).start();
-        });
-    }
-
+    // hàm hiển thị giao diện no chat view (không có người dùng/nhóm được chọn)
     private void showNoChatView() {
         HBox chatHeader = (HBox) mainContainer.lookup("#chatHeader");
         VBox noChatView = (VBox) mainContainer.lookup("#noChatView");
@@ -1590,6 +1555,7 @@ public class HomeController {
         messageContainer.getChildren().clear();
     }
 
+    // hàm hiển thị giao diện chat view (có người dùng/nhóm được chọn)
     private void showChatView() {
         HBox chatHeader = (HBox) mainContainer.lookup("#chatHeader");
         VBox noChatView = (VBox) mainContainer.lookup("#noChatView");
@@ -1609,11 +1575,13 @@ public class HomeController {
         }
     }
 
+    // hàm tải người dùng
     private void loadUsers() {
         new Thread(() -> {
             try {
                 allUsers = chatService.getUsers();
                 Platform.runLater(() -> {
+                    // lặp qua từng người cập nhật trạng thái onl/off
                     for (User u : allUsers) {
                         if (onlineUserIds.contains(u.get_id())) {
                             u.setOnline(true);
@@ -1624,6 +1592,7 @@ public class HomeController {
                     userListView.getItems().clear();
                     userListView.getItems().addAll(allUsers);
 
+                    // vẽ lại toàn bộ danh sách người dùng sau khi chuẩn bị
                     updateListViewBasedOnFilterAndSearch();
                     updateOnlineCountLabel();
                     searchStatusLabel.setVisible(false);
@@ -1637,6 +1606,7 @@ public class HomeController {
         }).start();
     }
 
+    // logic hàm trợ giúp vẽ lại danh sách sau khi tải hoặc tìm kiếm người dùng
     private void updateListViewBasedOnFilterAndSearch() {
         Platform.runLater(() -> {
             String currentSearchTerm = searchField != null ? searchField.getText().trim() : "";
@@ -1683,6 +1653,7 @@ public class HomeController {
         });
     }
 
+    // hàm thực thi tìm kiếm và quản lý giao diện liên quan
     private void performSearch(String searchTearm) {
         userListView.getItems().clear();
         userListView.refresh();
@@ -1709,14 +1680,16 @@ public class HomeController {
         }).start();
     }
 
+    // logic thực hiện khi chọn người dùng
     private void selectUser(User user) {
         this.selectedUser = user;
-        this.selectedGroup = null; // Clear group selection
+        this.selectedGroup = null; // cập nhật biến nhóm đã chọn về null
 
         user.setUnreadCount(0);
         userListView.refresh();
         socketService.emitSeenMessage(user.get_id());
 
+        // vẽ giao diện chat
         Platform.runLater(() -> {
             HBox chatHeader = (HBox) mainContainer.lookup("#chatHeader");
             chatHeader.setVisible(true);
@@ -1751,6 +1724,7 @@ public class HomeController {
         });
     }
 
+    // logic tải tin nhắn cá nhân
     private void loadMessages() {
         if (selectedUser == null) return;
 
@@ -1765,6 +1739,7 @@ public class HomeController {
         }).start();
     }
 
+    // logic render tin nhắn lên giao diện chat
     private void renderMessages() {
         messageContainer.getChildren().clear();
 
@@ -1819,18 +1794,20 @@ public class HomeController {
         messageScrollPane.setVvalue(1.0);
     }
 
+    // logic gửi tin nhắn chung
     private void sendMessage() {
         String content = messageInput.getText().trim();
         if (content.isEmpty()) return;
 
         if (selectedGroup != null) {
-            // Send Group Message
+            // gửi tin nhắn nhóm
             groupService.sendGroupMessage(selectedGroup.get_id(), content);
             renderGroupMessages();
         } else if (selectedUser != null) {
-            // Send User Message
+            // gửi tin nhắn cá nhân
             chatService.sendMessage(currentUser.get_id(), selectedUser.get_id(), content);
-            // Local echo
+
+            // tạo 1 tin nhắn tạm để cập nhật ngay lên giao diện
             Message localMsg = new Message();
             localMsg.setSenderId(currentUser.get_id());
             localMsg.setReceiverId(selectedUser.get_id());
@@ -1840,9 +1817,11 @@ public class HomeController {
             renderMessages();
         }
 
+        // xóa sạch nội dung trong trường nhập tin nhắn mỗi khi gửi đi
         messageInput.clear();
     }
 
+    // cập nhật các tin nhắn cuối cùng ở vùng cạnh bên (chứa danh sách người dùng/nhóm)
     private void updateSidebarLastMessage(Message message) {
         Platform.runLater(() -> {
             String otherUserId = message.getSenderId().equals(authService.getCurrentUser().get_id())
@@ -1869,6 +1848,7 @@ public class HomeController {
         });
     }
 
+    // logic cập nhật trạng thái đang soạn tin
     private void updateUserTypingStatus(String senderId, boolean isTyping) {
         if (allUsers == null) return;
         allUsers.stream()
@@ -1877,6 +1857,7 @@ public class HomeController {
                 .ifPresent(u -> u.setTyping(isTyping));
     }
 
+    // logic cập nhật số người online
     private void updateOnlineCountLabel() {
         Platform.runLater(() -> {
             if (allUsers == null || onlineCountLabel == null) return;
@@ -1885,8 +1866,7 @@ public class HomeController {
         });
     }
 
-    // ========== PROFILE & SETTINGS (Copied from old controller) ==========
-
+    // hàm chuyển hướng sang trang thông tin cá nhân
     private void showProfile() {
         if (currentUser == null) {
             showAlert("Lỗi", "Không tìm thấy người dùng hiện tại", Alert.AlertType.ERROR);
@@ -1896,13 +1876,12 @@ public class HomeController {
         mainContainer.setCenter(profileView);
     }
 
+    // logic khởi tạo trang thông tin cá nhân
     private VBox createProfileView(User user) {
         VBox parentContainer = new VBox(20);
         parentContainer.setPadding(new Insets(15));
         parentContainer.getStyleClass().add("profile-container");
         parentContainer.setAlignment(Pos.TOP_CENTER);
-
-        System.out.println(user.getAvatar());
 
         HBox headerBox = new HBox();
         headerBox.setAlignment(Pos.CENTER_LEFT);
@@ -1914,10 +1893,10 @@ public class HomeController {
         backBtn.setOnAction(e -> mainContainer.setCenter(centerContent));
         headerBox.getChildren().add(backBtn);
 
-        // Profile and change password content
+        // cột hiển thị thông tin cá nhân (ảnh đại diện, tên đầy đủ, email, tên đăng nhập)
         HBox profileContainer = new HBox(50);
-//        profileContainer.setMaxWidth(1000);
-//        profileContainer.setMinWidth(600);
+        // profileContainer.setMaxWidth(1000);
+        // profileContainer.setMinWidth(600);
         profileContainer.setAlignment(Pos.CENTER);
         profileContainer.setPadding(new Insets(20));
 
@@ -1947,6 +1926,7 @@ public class HomeController {
         HBox fullnameInfo = createInfoRow("Họ tên:", user.getFullName() != null ? user.getFullName() : "N/A");
         HBox emailInfo = createInfoRow("Email:", user.getEmail() != null ? user.getEmail() : "N/A");
 
+        // nút đổi ảnh đại diện và logic đổi ảnh đại diện
         Button changePhotoBtn = new Button("Đổi ảnh đại diện");
         changePhotoBtn.getStyleClass().add("primary-button");
         changePhotoBtn.setMaxWidth(Double.MAX_VALUE);
@@ -1962,20 +1942,19 @@ public class HomeController {
                 changePhotoBtn.setText("Đang tải lên...");
 
                 try {
-                    // Gọi API upload
+                    // gọi API upload
                     String serverUrl = userService.updateUserAvatar(selectedFile);
 
-                    // Cập nhật User Model
+                    // cập nhật User Model
                     user.setAvatar(serverUrl);
 
-                    // Cập nhật UI trên JavaFX Application Thread
+                    // cập nhật UI trên JavaFX Application Thread
                     Platform.runLater(() -> {
-                        // Tạo lại node ảnh mới từ URL server trả về (để đảm bảo link sống)
-                        // Hoặc dùng: String localUrl = selectedFile.toURI().toString(); để load nhanh hơn
+                        // tạo lại node ảnh mới từ URL server trả về (để đảm bảo link sống)
                         String localUrl = selectedFile.toURI().toString();
                         Node newAvatarNode = createAvatarNode(localUrl, 150, 120);
 
-                        // Thay thế nội dung trong Container -> Giao diện sẽ đổi ngay lập tức
+                        // thay thế nội dung trong Container -> Giao diện sẽ đổi avatar mới ngay lập tức
                         avatarContainer.getChildren().setAll(newAvatarNode);
 
                         showAlert("Thành công", "Cập nhật avatar thành công", Alert.AlertType.INFORMATION);
@@ -1997,8 +1976,9 @@ public class HomeController {
         profileContent.getChildren().addAll(avatarContainer, fullnameLabel, emailLabel, horizontalDivider, infoSection);
 
         Separator verticalDivider = new Separator(Orientation.VERTICAL);
-//        verticalDivider.setMaxHeight(500);
+        // verticalDivider.setMaxHeight(500);
 
+        // cột phục vụ đổi mật khẩu
         VBox changePasswordContent = new VBox(20);
         changePasswordContent.setAlignment(Pos.TOP_LEFT);
         changePasswordContent.setPrefWidth(400);
@@ -2039,6 +2019,7 @@ public class HomeController {
         return parentContainer;
     }
 
+    // hàm hỗ trợ tạo cột hiển thị thông tin cá nhân
     private HBox createInfoRow(String label, String value) {
         HBox row = new HBox(15);
         row.setAlignment(Pos.CENTER_LEFT);
@@ -2052,6 +2033,7 @@ public class HomeController {
         return row;
     }
 
+    // hàm hỗ trợ tạo các trường nhập đổi mật khẩu
     private VBox createPasswordInputGroup(String labelText, PasswordField field) {
         VBox group = new VBox(5);
         Label label = new Label(labelText);
@@ -2067,6 +2049,7 @@ public class HomeController {
         return group;
     }
 
+    // logic xử lý đổi mật khẩu
     private void handleUpdatePassword(PasswordField oldF, PasswordField newF, PasswordField confirmF) {
         String oldPass = oldF.getText();
         String newPass = newF.getText();
@@ -2096,7 +2079,6 @@ public class HomeController {
                     String rawMsg = ex.getMessage();
                     String displayMsg = "Đổi mật khẩu thất bại";
 
-                    // Try to extract JSON message from "Request failed... - {json}"
                     if (rawMsg != null && rawMsg.contains("{")) {
                         try {
                             int jsonStart = rawMsg.indexOf("{");
@@ -2107,7 +2089,6 @@ public class HomeController {
                                 displayMsg = jsonObj.get("message").getAsString();
                             }
                         } catch (Exception e) {
-                            // Parsing failed
                             displayMsg = rawMsg;
                         }
                     } else {
@@ -2120,11 +2101,13 @@ public class HomeController {
         }).start();
     }
 
+    // hàm chuyển hướng sang trang cài đặt
     private void showSettings() {
         VBox settingsView = createSettingsView();
         mainContainer.setCenter(settingsView);
     }
 
+    // logic khởi tạo trang cài đặt
     private VBox createSettingsView() {
         VBox settingsContainer = new VBox(20);
         settingsContainer.setPadding(new Insets(30));
@@ -2183,14 +2166,6 @@ public class HomeController {
         return settingsContainer;
     }
 
-    private void applyTheme(String stylesheet) {
-        if (scene != null) {
-            scene.getStylesheets().clear();
-            String cssUrl = getClass().getResource(stylesheet).toExternalForm();
-            scene.getStylesheets().add(cssUrl);
-        }
-    }
-
     // ========== HELPERS ==========
 
     private String getUserNameById(String userId) {
@@ -2201,10 +2176,11 @@ public class HomeController {
                 }
             }
         }
-        // Fallback or if not found
+
         return "Người dùng";
     }
 
+    // hàm định dạng thời gian, hỗ trợ khi render tin nhắn
     private String formatTime(String timeStamp) {
         if (timeStamp == null || timeStamp.isEmpty()) return "";
         try {
@@ -2216,6 +2192,7 @@ public class HomeController {
         }
     }
 
+    // hàm hiển thị cửa sổ thông báo
     private void showAlert(String title, String message, Alert.AlertType type) {
         Alert alert = new Alert(type);
         alert.setTitle(title);
@@ -2225,6 +2202,7 @@ public class HomeController {
         alert.showAndWait();
     }
 
+    // hàm hỗ trợ hiển thị avatar
     private Node createAvatarNode(String photoUrl, double avatarNodeSize, int iconSize) {
         if (photoUrl != null && !photoUrl.isEmpty()) {
             try {
@@ -2245,7 +2223,7 @@ public class HomeController {
         return container;
     }
 
-    // ========== LISTCELL CLASSES ==========
+    // ========== CÁC LỚP LISTCELL (CẤU HÌNH CHO TỪNG ITEM HAY ĐƯỢC SỬ DỤNG TRONG CÁC DANH SÁCH) ==========
 
     private class UserListCell extends ListCell<User> {
         @Override
@@ -2361,8 +2339,8 @@ public class HomeController {
                 boolean isCurrentUserOwner = groupContext.isUserOwner(currentUser.get_id());
                 boolean isThisMemberTheOwner = groupContext.isUserOwner(member.getUser().get_id());
 
-                // --- UI HIỂN THỊ VAI TRÒ ---
-                // Nếu người dùng hiện tại là Owner, hiển thị ComboBox để đổi vai trò
+                // --- LOGIC UI HIỂN THỊ VAI TRÒ ---
+                // nếu người dùng hiện tại là owner, hiển thị ComboBox để đổi vai trò
                 if (isCurrentUserOwner && !isThisMemberTheOwner) {
                     ComboBox<String> roleComboBox = new ComboBox<>();
                     roleComboBox.getItems().addAll("Quản trị viên", "Thành viên");
@@ -2378,7 +2356,7 @@ public class HomeController {
                     info.getChildren().add(roleComboBox);
 
                 } else {
-                    // Ngược lại, chỉ hiển thị Label
+                    // ngược lại, chỉ hiển thị label
                     String roleText;
                     if (isThisMemberTheOwner) {
                         roleText = "Chủ nhóm";
@@ -2396,12 +2374,12 @@ public class HomeController {
                 cell.getChildren().addAll(avatar, info);
 
                 // --- NÚT XÓA THÀNH VIÊN ---
-                // Quyền xóa: Owner hoặc Admin
+                // quyền xóa: owner hoặc admin
                 boolean isCurrentUserAdmin = groupContext.isUserAdmin(currentUser.get_id());
                 boolean isMe = currentUser.get_id().equals(member.getUser().get_id());
                 boolean canDelete = (isCurrentUserOwner || isCurrentUserAdmin) && !isMe && !isThisMemberTheOwner;
 
-                // Admin không thể xóa Admin khác (chỉ Owner làm được)
+                // admin không thể xóa admin khác (chỉ owner làm được)
                 if (isCurrentUserAdmin && !isCurrentUserOwner && member.isAdmin()) {
                     canDelete = false;
                 }
@@ -2424,6 +2402,7 @@ public class HomeController {
             }
         }
 
+        // logic xử lý đổi vai trò cho thành viên
         private void handleChangeRole(Group.GroupMember member, String newRole) {
             Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION,
                     "Bạn có chắc muốn đổi vai trò của " + member.getUser().getFullName() + " thành " + newRole + "?",
@@ -2435,15 +2414,16 @@ public class HomeController {
                     new Thread(() -> {
                         try {
                             groupService.changeRole(groupContext.get_id(), member.getUser().get_id(), newRole);
-                            // Fetch fresh data
+                            // lấy lại thông tin mới
                             Group updatedGroup = groupService.getGroupInfo(groupContext.get_id());
 
                             Platform.runLater(() -> {
                                 showAlert("Thành công", "Đã cập nhật vai trò thành công.", Alert.AlertType.INFORMATION);
 
-                                // Update internal data
+                                // cập nhật lại danh sách thành viên với quyền mới
                                 groupContext.setMembers(updatedGroup.getMembers());
-                                // Refresh list view items to show new roles
+
+                                // hiển thị lại danh sách thành viên
                                 getListView().getItems().setAll(updatedGroup.getMembers());
                             });
                         } catch (Exception ex) {
@@ -2451,12 +2431,13 @@ public class HomeController {
                         }
                     }).start();
                 } else {
-                    // Nếu người dùng chọn NO, reset lại ComboBox
+                    // nếu người dùng chọn NO, reset lại ComboBox
                     getListView().refresh();
                 }
             });
         }
 
+        // logic xử lý xóa thành viên
         private void handleDeleteMember(Group.GroupMember member) {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION,
                     "Bạn có chắc chắn muốn xóa thành viên " + member.getUser().getFullName() + " khỏi nhóm?",
@@ -2469,17 +2450,15 @@ public class HomeController {
                             boolean success = groupService.removeMember(groupContext.get_id(),
                                     member.getUser().get_id());
                             if (success) {
-                                // Fetch updated group
+                                // lấy lại dữ liệu nhóm với danh sách thành viên mới
                                 Group updatedGroup = groupService.getGroupInfo(groupContext.get_id());
 
                                 Platform.runLater(() -> {
-                                    // Remove from list view
+                                    // xóa thành viên khỏi danh sách hiện tại
                                     getListView().getItems().remove(member);
-
-                                    // Update group context members so "Add Member" dialog filters correctly
                                     groupContext.setMembers(updatedGroup.getMembers());
 
-                                    // Update Main Chat Header (Member Count)
+                                    // cập nhật lại header để hiển thị đúng số thành viên nhóm
                                     renderSelectedGroupUI(updatedGroup);
 
                                     showAlert("Thành công", "Đã xóa thành viên khỏi nhóm.",
@@ -2493,18 +2472,6 @@ public class HomeController {
                     }).start();
                 }
             });
-        }
-    }
-
-    private class UserListCellSimple extends ListCell<User> {
-        @Override
-        protected void updateItem(User user, boolean empty) {
-            super.updateItem(user, empty);
-            if (empty || user == null) {
-                setText(null);
-            } else {
-                setText(user.getFullName() + " (@" + user.getUsername() + ")");
-            }
         }
     }
 }

@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
+// lớp phục vụ gửi/nhận các sự kiện thời gian thực
 public class SocketService {
 
     private Socket socket;
@@ -24,25 +25,24 @@ public class SocketService {
 
     private List<String> onlineUsers;
 
-    // chat callbacks
-    private Consumer<Message> onNewMessage;
-    private Consumer<List<String>> onOnlineListReceived;
-    private Consumer<String> onUserOnline;
-    private Consumer<String> onUserOffline;
+    // ---------- CALLBACKS ----------
 
-    // group callbacks
-    private Consumer<GroupMessage> onNewGroupMessage;
-    private Consumer<String> onGroupTypingStart;
-    private Consumer<String> onGroupTypingStop;
-    private Consumer<JsonObject> onGroupMessageSeen;
-    private Consumer<JsonObject> onGroupCreated;
-    private Consumer<JsonObject> onGroupDeleted;
-    private Consumer<Void> onReloadGroups;
+    private Consumer<Message> onNewMessage;                 // báo tin nhắn mới
+    private Consumer<List<String>> onOnlineListReceived;    // hỗ trợ lấy danh sách người dùng online
+    private Consumer<String> onUserOnline;                  // danh sách người dùng online
+    private Consumer<String> onUserOffline;                 // danh sách người dùng offline
 
-    // typing callbacks
-    private Consumer<String> onTypingStart;
-    private Consumer<String> onTypingStop;
-    private Consumer<JsonObject> onMessageSeen;
+    private Consumer<GroupMessage> onNewGroupMessage;       // báo tin nhắn nhóm mới
+    private Consumer<String> onGroupTypingStart;            // bắt đầu soạn tin nhắn nhóm
+    private Consumer<String> onGroupTypingStop;             // kết thúc soạn tin nhắn nhóm
+    private Consumer<JsonObject> onGroupMessageSeen;        // báo đã xem tin nhắn nhóm
+    private Consumer<JsonObject> onGroupCreated;            // báo tình trạng tạo nhóm
+    private Consumer<JsonObject> onGroupDeleted;            // báo tình trạng xóa nhóm
+    private Consumer<Void> onReloadGroups;                  // báo tình trạng tải lại nhóm
+
+    private Consumer<String> onTypingStart;                 // báo bắt đầu soạn tin nhắn (cá nhân)
+    private Consumer<String> onTypingStop;                  // báo kết thúc soạn tin nhắn (cá nhân)
+    private Consumer<JsonObject> onMessageSeen;             // báo đã xem tin nhắn (cá nhân)
 
     public SocketService() {
         this.gson = new Gson();
@@ -91,7 +91,7 @@ public class SocketService {
                 }
             });
 
-            // new user online
+            // có người dùng mới online
             socket.on("noti-online", args -> {
                if(args.length > 0 && onUserOnline != null){
                    try {
@@ -107,7 +107,7 @@ public class SocketService {
                }
             });
 
-            // new user offline
+            // có người dùng mới offline
             socket.on("noti-offline", args -> {
                 if (args.length > 0 && onUserOffline != null){
                     try {
@@ -123,7 +123,7 @@ public class SocketService {
                 }
             });
 
-            // typing start
+            // bắt đầu nhập
             socket.on("typing-start", args -> {
                if (args.length > 0 && onTypingStart != null){
                    JSONObject data = (JSONObject) args[0];
@@ -132,7 +132,7 @@ public class SocketService {
                }
             });
 
-            // typing stop
+            // kết thúc nhập
             socket.on("typing-stop", args -> {
                if (args.length > 0 && onTypingStop != null){
                    JSONObject data = (JSONObject) args[0];
@@ -141,7 +141,7 @@ public class SocketService {
                }
             });
 
-            // seen event
+            // gửi tin nhắn
             socket.on("send-message", args -> {
                if (args.length > 0 && onMessageSeen != null){
                    try {
@@ -153,7 +153,7 @@ public class SocketService {
                }
             });
 
-            // ===== receive message =====
+            // nhận tin nhắn
             socket.on("receive-message", args -> {
                 if (args.length > 0 && onNewMessage != null) {
                     try {
@@ -166,6 +166,7 @@ public class SocketService {
                 }
             });
 
+            // đã xem (cá nhân)
             socket.on("seen-message", args -> {
                 if (args.length > 0 && onMessageSeen != null){
                     try {
@@ -177,6 +178,7 @@ public class SocketService {
                 }
             });
 
+            // nhận tin nhắn nhóm
             socket.on("receive-group-message", args -> {
                 if (args.length > 0 && onNewGroupMessage != null) {
                     try {
@@ -188,6 +190,7 @@ public class SocketService {
                 }
             });
 
+            // bắt đầu soạn tin nhắn nhóm
             socket.on("group-typing-start", args -> {
                 if (args.length > 0 && onGroupTypingStart != null) {
                     try {
@@ -200,6 +203,7 @@ public class SocketService {
                 }
             });
 
+            // kết thúc soạn tin nhắn nhóm
             socket.on("group-typing-stop", args -> {
                 if (args.length > 0 && onGroupTypingStop != null) {
                     try {
@@ -212,6 +216,7 @@ public class SocketService {
                 }
             });
 
+            // đã xem (nhóm)
             socket.on("user-seen-message", args -> {
                 if (args.length > 0 && onGroupMessageSeen != null) {
                     try {
@@ -223,6 +228,7 @@ public class SocketService {
                 }
             });
 
+            // tạo nhóm
             socket.on("group-created", args -> {
                 if (args.length > 0 && onGroupCreated != null) {
                     try {
@@ -234,6 +240,7 @@ public class SocketService {
                 }
             });
 
+            // xóa nhóm
             socket.on("group-deleted", args -> {
                 if (args.length > 0 && onGroupDeleted != null) {
                     try {
@@ -245,6 +252,7 @@ public class SocketService {
                 }
             });
 
+            // tải lại nhóm
             socket.on("reload-groups", args -> {
                 if (onReloadGroups != null) {
                     Platform.runLater(() -> onReloadGroups.accept(null));
@@ -258,6 +266,8 @@ public class SocketService {
         }
     }
 
+    // ================= DISCONNECT =================
+
     public void disconnect() {
         if (socket != null) {
             socket.off();
@@ -267,7 +277,7 @@ public class SocketService {
         }
     }
 
-    // typing status, seen status
+    // trạng thái nhập
     public void emitStartTyping(String receiverId){
         if (socket != null){
             JSONObject obj = new JSONObject();
@@ -292,6 +302,7 @@ public class SocketService {
         }
     }
 
+    // xem tin nhăn
     public void emitSeenMessage(String senderId){
         if (socket != null){
             JSONObject obj = new JSONObject();
@@ -312,7 +323,7 @@ public class SocketService {
             return;
         }
 
-        // Dùng JSONObject của org.json
+        // dùng JSONObject của org.json
         JSONObject payload = new JSONObject();
         try {
             payload.put("receiverId", receiverId);
@@ -331,6 +342,7 @@ public class SocketService {
     }
 
     // ==================== GROUP EMIT METHODS ====================
+
     public void joinGroup(String groupId) {
         if (socket == null || !socket.connected()) return;
 

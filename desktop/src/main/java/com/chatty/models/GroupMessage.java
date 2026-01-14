@@ -9,10 +9,12 @@ public class GroupMessage {
     private String _id;
     private String groupId;
 
-    // --- BEFORE ---
-    // private String senderId;
+     /*
+     --- trước đây ---
+     private String senderId;
+      */
 
-    // --- AFTER ---
+    // --- bây giờ ---
     @SerializedName("senderId")
     private User sender;
 
@@ -25,12 +27,11 @@ public class GroupMessage {
 
     public GroupMessage() {}
 
-    // Check if message seen by user
+    // kiểm tra tin nhắn đã được xem bởi người này chưa
     public boolean isSeenBy(String userId) {
         return seenBy != null && seenBy.contains(userId);
     }
 
-    // Get sender name (handle both String ID and User object)
     public String getSenderName() {
         if (sender != null) {
             return sender.getFullName() != null ? sender.getFullName() : sender.getUsername();
@@ -38,7 +39,6 @@ public class GroupMessage {
         return "Unknown";
     }
 
-    // Get sender avatar
     public String getSenderAvatar() {
         if (sender != null) {
             return sender.getAvatar();
@@ -46,7 +46,7 @@ public class GroupMessage {
         return null;
     }
 
-    // Getters and Setters
+    // các getter và setter
     public String get_id() {
         return _id;
     }

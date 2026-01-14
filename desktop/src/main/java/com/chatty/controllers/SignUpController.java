@@ -16,6 +16,7 @@ import javafx.stage.Stage;
 import org.kordamp.ikonli.javafx.FontIcon;
 import javafx.application.Platform;
 
+// trang đăng ký
 public class SignUpController {
     private AuthService authService;
 
@@ -27,18 +28,18 @@ public class SignUpController {
         primaryStage.setTitle("Kma Chatty - Đăng ký");
         primaryStage.centerOnScreen();
 
-        // Main container
+        // khung chứa chính
         HBox mainContainer = new HBox();
         mainContainer.getStyleClass().add("login-container");
 
-        // Left side - Form
+        // phần bên trái - form đăng ký
         VBox leftPane = new VBox(20);
         leftPane.setPadding(new Insets(40));
         leftPane.setAlignment(Pos.CENTER);
         leftPane.setPrefWidth(450);
         leftPane.getStyleClass().add("login-form-pane");
 
-        // Logo
+        // logo
         VBox logoContainer = new VBox(10);
         logoContainer.setAlignment(Pos.CENTER);
         Label title = new Label("Tạo tài khoản");
@@ -48,11 +49,11 @@ public class SignUpController {
 
         logoContainer.getChildren().addAll(title, subtitle);
 
-        // Form fields
+        // vùng chứa toàn bộ form
         VBox formContainer = new VBox(20);
         formContainer.setPrefWidth(350);
 
-        // Username field
+        // tên đăng nhập
         Label usernameLabel = new Label("Tên đăng nhập");
         usernameLabel.getStyleClass().add("form-label");
         HBox usernameContainer = new HBox(10);
@@ -67,7 +68,7 @@ public class SignUpController {
         usernameField.setPrefWidth(310);
         usernameContainer.getChildren().addAll(usernameIcon, usernameField);
 
-        // Password field
+        // mật khẩu
         Label passwordLabel = new Label("Mật khẩu");
         passwordLabel.getStyleClass().add("form-label");
         HBox passwordContainer = new HBox(10);
@@ -78,17 +79,20 @@ public class SignUpController {
         lockIcon.getStyleClass().add("input-icon");
         StackPane passwordField = new StackPane();
 
+        // trường mật khẩu (********)
         PasswordField invisiblePasswordField = new PasswordField();
         invisiblePasswordField.setPromptText("••••••••");
         invisiblePasswordField.getStyleClass().add("text-input");
         invisiblePasswordField.setPrefWidth(270);
 
+        // trường mật khẩu đầy đủ
         TextField visiblePasswordField = new TextField();
         visiblePasswordField.setPromptText("••••••••");
         visiblePasswordField.getStyleClass().add("text-input");
         visiblePasswordField.setVisible(false);
         visiblePasswordField.setPrefWidth(270);
 
+        // nút con mắt hiện mật khẩu
         ToggleButton showPasswordBtn = new ToggleButton();
         FontIcon eyeIcon = new FontIcon("mdi2e-eye");
         eyeIcon.setIconSize(20);
@@ -112,7 +116,7 @@ public class SignUpController {
         passwordField.getChildren().addAll(invisiblePasswordField, visiblePasswordField);
         passwordContainer.getChildren().addAll(lockIcon, passwordField, showPasswordBtn);
 
-        // Full Name field
+        // tên đầy đủ
         Label fullNameLabel = new Label("Họ và tên");
         fullNameLabel.getStyleClass().add("form-label");
         HBox fullNameContainer = new HBox(10);
@@ -127,7 +131,7 @@ public class SignUpController {
         fullNameField.setPrefWidth(310);
         fullNameContainer.getChildren().addAll(userIcon, fullNameField);
 
-        // Email field
+        // email
         Label emailLabel = new Label("Email");
         emailLabel.getStyleClass().add("form-label");
         HBox emailContainer = new HBox(10);
@@ -142,12 +146,12 @@ public class SignUpController {
         emailField.setPrefWidth(310);
         emailContainer.getChildren().addAll(mailIcon, emailField);
 
-        // Sign up button
+        // nút đăng ký
         Button signupButton = new Button("Đăng ký");
         signupButton.getStyleClass().add("primary-button");
         signupButton.setPrefWidth(350);
 
-        // Login link
+        // link sang trang đăng nhập để người dùng chuyển hướng nếu đã có tài khoản
         HBox loginLinkContainer = new HBox();
         loginLinkContainer.setAlignment(Pos.CENTER);
         Label loginLabel = new Label("Bạn đã có tài khoản? ");
@@ -160,7 +164,7 @@ public class SignUpController {
 
         leftPane.getChildren().addAll(logoContainer, formContainer);
 
-        // Right side - Pattern/Image
+        // phần bên phải - ảnh và lời chào mừng
         VBox rightPane = new VBox();
         rightPane.setPrefWidth(550);
         rightPane.getStyleClass().add("login-pattern-pane");
@@ -169,8 +173,7 @@ public class SignUpController {
         logo.setFitHeight(250);
         logo.setImage(new Image(getClass().getResource("/logo.png").toExternalForm()));
 
-        // --- BO TRÒN ---
-        // Tạo một hình tròn
+        // bo tròn logo
         Circle clip = new Circle(125, 125, 125); // Tọa độ tâm X, Y, Bán kính (Bán kính = 1 nửa kích thước ảnh)
         logo.setClip(clip);
 
@@ -184,7 +187,7 @@ public class SignUpController {
 
         mainContainer.getChildren().addAll(leftPane, rightPane);
 
-        // Sign up handler
+        // logic đăng ký
         signupButton.setOnAction(e -> {
             String username = usernameField.getText();
             String fullName = fullNameField.getText();
@@ -232,7 +235,7 @@ public class SignUpController {
             }).start();
         });
 
-        // Login link handler
+        // xử lý khi người dùng nhấn vào link chuyển sang đăng nhập
         loginLink.setOnAction(e -> {
             new LoginController().show(primaryStage);
         });
@@ -245,6 +248,7 @@ public class SignUpController {
         Platform.runLater(mainContainer::requestFocus);
     }
 
+    // hàm tiện ích tạo cửa sổ nhỏ thông báo
     private void showAlert(String title, String message, Alert.AlertType type) {
         Alert alert = new Alert(type);
         alert.setTitle(title);

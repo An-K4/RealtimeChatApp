@@ -9,16 +9,17 @@ import javafx.scene.control.DialogPane;
 
 import java.util.prefs.Preferences;
 
+// lớp phục vụ chuyển đổi chế độ giao diện sáng/tối cho toàn bộ ứng dụng (gần như hoàn thiện)
 public class ThemeService {
     private static final String THEME_PREF_KEY = "app.theme";
     private static final String DEFAULT_THEME = "light";
     private static final Preferences prefs = Preferences.userNodeForPackage(ThemeService.class);
 
-    // Biến theo dõi theme hiện tại
+    // biến theo dõi theme hiện tại
     private static final ObjectProperty<Theme> currentTheme = new SimpleObjectProperty<>(loadThemeFromPrefs());
 
     public enum Theme {
-        // Khai báo đường dẫn CSS ngay trong Enum
+        // khai báo đường dẫn CSS ngay trong Enum
         LIGHT("light", "/styles.css"),
         DARK("dark", "/styles-dark.css");
 
@@ -55,15 +56,12 @@ public class ThemeService {
         return currentTheme.get();
     }
 
-    // --- ĐÂY LÀ HÀM BẠN CẦN GIỮ LẠI ---
-    // Hàm này lấy đường dẫn CSS của theme hiện tại
     public static String getThemeStylesheet() {
-        // Lấy đường dẫn từ enum của theme đang chọn
+        // lấy đường dẫn từ enum của theme đang chọn
         return currentTheme.get().getCssPath();
     }
-    // ----------------------------------
 
-    // Hàm tự động cài đặt và lắng nghe thay đổi theme cho Scene
+    // tự động cài đặt và lắng nghe thay đổi theme cho scene
     public static void install(Scene scene) {
         if (scene == null) return;
 
@@ -80,18 +78,19 @@ public class ThemeService {
         scene.getStylesheets().add(cssUrl);
     }
 
+    // cấu hình theme cho các dialog
     public static void styleDialog(Dialog<?> dialog) {
         if (dialog == null) return;
 
         DialogPane dialogPane = dialog.getDialogPane();
 
-        // Xóa style cũ
+        // xóa style cũ
         dialogPane.getStylesheets().clear();
 
-        // Thêm style theme hiện tại
+        // thêm style theme hiện tại
         dialogPane.getStylesheets().add(getThemeStylesheet());
 
-        // Thêm class để CSS nhận diện đây là dialog
+        // thêm class để CSS nhận diện đây là dialog
         dialogPane.getStyleClass().add("custom-dialog");
     }
 }
