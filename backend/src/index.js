@@ -1,11 +1,11 @@
 const express = require("express");
 require("dotenv").config();
 const cors = require("cors")
-const initSocket = require("./src/socket.io/index");
+const initSocket = require("./socket.io/index");
 
-const databaseConfig = require("./src/configs/database.config");
+const databaseConfig = require("./configs/database.config");
 
-const UserRouter = require("./src/routes/index.route")
+const UserRouter = require("./routes/index.route")
 const {
   createServer
 } = require("http");
