@@ -1,4 +1,4 @@
-# Realtime Chat Application (Chatty)
+# Realtime Chat Application (KMA Chatty)
 
 Chào mừng bạn đến với **KMA Chatty** - Ứng dụng nhắn tin thời gian thực đa nền tảng. Dự án này là một hệ thống Fullstack hoàn chỉnh bao gồm Backend xử lý logic, Web Client hiện đại và Desktop Client (JavaFX) hoạt động đồng bộ.
 
