@@ -171,7 +171,8 @@ mvn clean javafx:run
 ```
 
 **Cách 2: Sử dụng IntelliJ IDEA**
-Mở thư mục bằng IntelliJ IDEA, tìm đến file **Launcher.java** bên trong thư mục desktop, click chuột phải và chọn **Run**
+
+Mở thư mục bằng IntelliJ IDEA, tìm đến file **Launcher.java** bên trong thư mục desktop, click chuột phải và chọn **Run**.
 
 ## ☕ Một Số Hình Ảnh Kết Quả
 
