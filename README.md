@@ -1,6 +1,6 @@
 # Realtime Chat Application (Chatty)
 
-Chào mừng bạn đến với **Chatty** - Ứng dụng nhắn tin thời gian thực đa nền tảng. Dự án này là một hệ thống Fullstack hoàn chỉnh bao gồm Backend xử lý logic, Web Client hiện đại và Desktop Client (JavaFX) hoạt động đồng bộ.
+Chào mừng bạn đến với **KMA Chatty** - Ứng dụng nhắn tin thời gian thực đa nền tảng. Dự án này là một hệ thống Fullstack hoàn chỉnh bao gồm Backend xử lý logic, Web Client hiện đại và Desktop Client (JavaFX) hoạt động đồng bộ.
 
 Dự án này minh họa cách xây dựng ứng dụng realtime sử dụng Socket.IO và cách porting giao diện/logic từ Web sang Desktop Application.
 
@@ -185,3 +185,33 @@ Mở thư mục bằng IntelliJ IDEA, tìm đến file **Launcher.java** bên tr
   <h3>Giao diện Chat</h3>
   <img src="https://github.com/user-attachments/assets/0047885f-73d3-4365-8188-5a48441a2a25" alt="Chat Interface" width="100%" style="border-radius: 10px;">
 </div>
+
+---
+
+## 🤝 Đóng Góp (Contributing)
+
+Dự án **KMA Chatty** hiện vẫn đang trong quá trình phát triển và hoàn thiện nên vẫn còn nhiều thiếu sót. Chúng mình rất hoan nghênh mọi sự đóng góp từ cộng đồng để dự án trở nên tốt hơn.
+
+Nếu bạn muốn tham gia đóng góp:
+
+1.  **Fork** repository này về tài khoản của bạn.
+2.  Tạo nhánh mới cho tính năng của bạn (`git checkout -b feature/TinhNangMoi`).
+3.  Commit những thay đổi (`git commit -m 'Thêm tính năng X'`).
+4.  Push lên nhánh của bạn (`git push origin feature/TinhNangMoi`).
+5.  Tạo một **Pull Request** trên GitHub.
+
+## 👥 Đội Ngũ Phát Triển
+
+Dự án được thực hiện bởi nhóm gồm 4 thành viên:
+
+*   **Nguyễn Tuấn Dũng** - *Backend & Frontend*
+*   **Trần Duy Quyến** - *Backend & Frontend*
+*   **Vũ Quốc An** - *Desktop App*
+*   **Đoàn Hoàng Anh** - *Test & Docs*
+
+## ⭐️ Ủng hộ
+
+Nếu bạn thấy dự án này thú vị hoặc hữu ích, hãy để lại một **Star** ⭐️ để động viên tinh thần cả nhóm nhé!
+
+---
+Developed with ❤️ by **KMA Chatty Team**.
