@@ -75,12 +75,12 @@ Các công nghệ cốt lõi được sử dụng để xây dựng dự án:
 | :--- | :---: | :--- |
 | <img src="https://cdn.simpleicons.org/nodedotjs/339933" width="16" height="16"/> **[Node.js](https://nodejs.org/)** | `v18+` | Chạy Server Backend & Frontend Build Tool |
 | <img src="https://cdn.simpleicons.org/mongodb/47A248" width="16" height="16"/> **[MongoDB](https://www.mongodb.com/try/download/community)** | `v6.0+` | Cơ sở dữ liệu (Database) |
-| <img src="https://cdn.simpleicons.org/openjdk/000000" width="16" height="16"/> **[JDK](https://www.oracle.com/java/technologies/downloads/)** | `v17+` | Môi trường chạy Desktop App (Java) |
+| <img src="https://cdn.simpleicons.org/openjdk/FFFFFF" width="16" height="16"/> **[JDK](https://www.oracle.com/java/technologies/downloads/)** | `v17+` | Môi trường chạy Desktop App (Java) |
 | <img src="https://cdn.simpleicons.org/apachemaven/C71A36" width="16" height="16"/> **[Maven](https://maven.apache.org/download.cgi)** | `v3.6+` | Công cụ build cho Desktop App |
 
 > **Lưu ý:** Đảm bảo rằng các lệnh `node`, `npm`, `java`, `mvn` đã được thêm vào biến môi trường (PATH) của hệ điều hành.
 
-## <img src="https://cdn.simpleicons.org/git/F05032" width="20" height="20"/> Clone repository này
+## <img src="https://cdn.simpleicons.org/git/F05032" width="20" height="20"/> Clone Repository Này
 
 ```bash
 git clone https://github.com/An-K4/RealtimeChatApp.git
@@ -129,6 +129,7 @@ Lưu ý: Backend mặc định sẽ chạy tại http://localhost:3000 như cấ
 <br>
 Nếu terminal hiển thị như dưới đây nghĩa là Backend đã sẵn sàng:
 
+
 ```bash
 > backend@1.0.0 dev
 > nodemon --inspect src/index.js
@@ -172,7 +173,7 @@ mvn clean javafx:run
 **Cách 2: Sử dụng IntelliJ IDEA**
 Mở thư mục bằng IntelliJ IDEA, tìm đến file **Launcher.java** bên trong thư mục desktop, click chuột phải và chọn **Run**
 
-## ☕ Kết quả
+## ☕ Một Số Hình Ảnh Kết Quả
 
 <!-- Container ảnh: Bạn hãy thay thế đường dẫn src bằng link ảnh thật của bạn sau khi chụp màn hình -->
 
