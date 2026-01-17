@@ -13,7 +13,6 @@ Dự án này minh họa cách xây dựng ứng dụng realtime sử dụng Soc
   - Hiển thị danh sách người dùng trong hệ thống.
   - Cập nhật trạng thái **Online / Offline** theo thời gian thực.
 - **Chat History:** Tải và hiển thị lịch sử tin nhắn cũ khi vào lại cuộc trò chuyện.
-- **Cross-Platform UI:** Giao diện Desktop (JavaFX) được thiết kế đồng bộ 1:1 với giao diện Web.
 
 ### Kiến Trúc Kỹ Thuật
 - **Frontend:** Single Page Application (SPA) tối ưu tốc độ.
