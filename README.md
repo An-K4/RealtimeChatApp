@@ -92,7 +92,7 @@ cd RealtimeChatApp
 Để ứng dụng hoạt động, bạn cần chạy Backend trước, sau đó mới chạy các Client (Web hoặc Desktop).
 
 ### 1. Thiết lập biến môi trường
-Để có thể khởi động backend, cần tạo file .env ở thư mục gốc backend với mẫu như file /backend/.env.example:
+Để có thể khởi động Backend, cần tạo file .env ở thư mục gốc Backend với mẫu như file /backend/.env.example:
 
 ```bash
 PORT=3000
@@ -110,7 +110,7 @@ CLOUD_SECRET=
 ALLOWED_ORIGINS=http://localhost:5173
 ```
 
-**Mặc định:** backend sẽ lắng nghe ở cổng 3000 và chấp nhận frontend ở cổng 5173
+**Mặc định:** Backend sẽ lắng nghe ở cổng 3000 và chấp nhận frontend ở cổng 5173
 
 ### 2. Khởi động Backend (Server)
 
@@ -125,7 +125,7 @@ npm run dev
 Lưu ý: Backend mặc định sẽ chạy tại http://localhost:3000 như cấu hình .env mẫu. Hãy đảm bảo server đã sẵn sàng trước khi tiếp tục. 
 
 <details>
-<summary><b>Xem ví dụ khi backend đã khởi chạy thành công ở đây</b></summary>
+<summary><b>Xem ví dụ khi Backend đã khởi chạy thành công ở đây</b></summary>
 <br>
 Nếu terminal hiển thị như dưới đây nghĩa là Backend đã sẵn sàng:
 
