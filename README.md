@@ -42,7 +42,7 @@ RealtimeChatApp
 └── README.md
 ```
 
-## 🛠️ Công Nghệ Sử Dụng (Tech Stack)
+## 🛠️ Công Nghệ Sử Dụng
 
 Các công nghệ cốt lõi được sử dụng để xây dựng dự án:
 
@@ -66,7 +66,7 @@ Các công nghệ cốt lõi được sử dụng để xây dựng dự án:
     ![Maven](https://img.shields.io/badge/Maven-C71A36?style=flat&logo=apachemaven&logoColor=white)
     ![Socket.IO-Client](https://img.shields.io/badge/Socket.IO_Java-010101?style=flat&logo=socket.io&logoColor=white)
 
-## ⚙️ Yêu cầu hệ thống (Prerequisites)
+## ⚙️ Yêu cầu hệ thống
 
 Để chạy được toàn bộ dự án (Fullstack), máy tính của bạn cần cài đặt sẵn:
 
@@ -166,7 +166,7 @@ Truy cập ứng dụng tại: http://localhost:5173
 
 ```bash
 cd desktop
-mvn clean javafx:run
+mvn javafx:run
 ```
 
 **Cách 2: Sử dụng IntelliJ IDEA**
